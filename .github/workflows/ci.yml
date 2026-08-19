@@ -34,7 +34,9 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
-          go-version: "1.24"
+          # 钉 1.25.13：govulncheck 报 14 个可达标准库漏洞（GO-2026-6218 等），
+          # 修复版本分布在 1.25.9~1.25.13，钉当前最新 patch 全量覆盖。
+          go-version: "1.25.13"
           cache: false
       - name: Go 漏洞审计（go.sum 全量 + 可达性分析，零容忍）
         run: |
@@ -49,7 +51,7 @@ jobs:
     uses: Cloudbird-Software/CI-Workflows/.github/workflows/check.yml@9c20d43d60e9f9d1438f171aeee8e4dbdf02c08b # v1.3.1
     with:
       runtime: go
-      go-version: "1.24"
+      go-version: "1.25.13"
 
   deps:
     if: github.event_name == 'pull_request'

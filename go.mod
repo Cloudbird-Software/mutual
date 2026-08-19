@@ -1,6 +1,6 @@
 module github.com/Cloudbird-Software/mutual
 
-go 1.24.0
+go 1.25.0
 
 require github.com/boundaryml/baml v0.226.1
 
