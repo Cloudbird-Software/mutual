@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"math"
 	"os"
+	"regexp"
+	"sort"
 	"strings"
 	"testing"
 
@@ -121,8 +123,42 @@ var fakeScoreTable = map[string][2]float64{
 var fakeCohortIDs = []string{"alice", "bob", "carol", "david"}
 
 // 按阶段类型化分发（§7.1 语义的 Go 落地：打分 → 查表，其余 → 固定话术）。
+//
+// 批量契约（CodeRabbit）：prompt 含 "### Pair N: (u1, u2)" 分块时逐块
+// 查表、按块序返回 JSON 数组（batch>1 的 parseScoringResponse 只接受
+// 数组）；单块保持单对象（golden 捕获用 batch=1，逐位不变）。
 func (fakeLLM) CompleteScore(prompt string, model string) (string, error) {
 	_ = model
+	var blocks [][]string
+	for _, loc := range goldenPairHeaderRE.FindAllStringSubmatch(prompt, -1) {
+		blocks = append(blocks, loc[1:])
+	}
+	if len(blocks) == 0 {
+		return goldenWholePromptScore(prompt), nil
+	}
+	objs := make([]map[string]any, 0, len(blocks))
+	for _, b := range blocks {
+		ids := []string{b[0], b[1]}
+		sort.Strings(ids)
+		obj := map[string]any{"a_to_b": 0.5, "b_to_a": 0.5, "reasoning": "fake"}
+		if entry, ok := fakeScoreTable[ids[0]+"__"+ids[1]]; ok {
+			obj["a_to_b"], obj["b_to_a"] = entry[0], entry[1]
+		}
+		objs = append(objs, obj)
+	}
+	if len(objs) == 1 {
+		out, _ := json.Marshal(objs[0])
+		return string(out), nil
+	}
+	out, _ := json.Marshal(objs)
+	return string(out), nil
+}
+
+// goldenPairHeaderRE 匹配批量打分 prompt 的分对块头。
+var goldenPairHeaderRE = regexp.MustCompile(`(?m)^### Pair \d+: \(([^,\s]+), ([^)\s]+)\)$`)
+
+// goldenWholePromptScore 整段查表（非批量 prompt 的旧路径）。
+func goldenWholePromptScore(prompt string) string {
 	var found []string
 	for _, id := range fakeCohortIDs {
 		if strings.Contains(prompt, id) {
@@ -134,10 +170,10 @@ func (fakeLLM) CompleteScore(prompt string, model string) (string, error) {
 			out, _ := json.Marshal(map[string]any{
 				"a_to_b": entry[0], "b_to_a": entry[1], "reasoning": "fake",
 			})
-			return string(out), nil
+			return string(out)
 		}
 	}
-	return `{"a_to_b": 0.5, "b_to_a": 0.5, "reasoning": "fake"}`, nil
+	return `{"a_to_b": 0.5, "b_to_a": 0.5, "reasoning": "fake"}`
 }
 
 func (fakeLLM) CompleteExtract(prompt string, model string) (string, error) {
@@ -301,6 +337,39 @@ func TestGoldenScoreAndMatchFlow(t *testing.T) {
 	// ---- report ----
 	report := CreateReport(outcome.Edges, goldenExtracted(g), 0, nil)
 	assertJSONValueEqual(t, "report", report, g.Report)
+}
+
+// TestGoldenScoreBatchFlow 批量打分路径（batch=2，CodeRabbit）：替身按
+// "### Pair N" 分块返回 JSON 数组，整批打分成功且分数与 batch=1 的
+// golden 期望逐对一致——批量路径不再只靠 BatchSize==1 覆盖。
+func TestGoldenScoreBatchFlow(t *testing.T) {
+	g := loadGoldenFlow(t)
+	b := goldenBundle(t, g)
+	sim := ComputeSimilarity(b, nil, goldenRecipe())
+	cap24, cap1200 := 24, 1200
+	selected := SelectPairs(sim, SelectBudgets{PerProfileCap: &cap24, GlobalCap: &cap1200}, nil)
+
+	scores, unscored := ScorePairs(
+		selected,
+		goldenSectionsDict(g),
+		"score instruction: respond with a_to_b and b_to_a scores",
+		"{user1_sections}\n{user2_sections}\n{instruction}",
+		fakeLLM{},
+		ScoreBudgets{PerProfileCap: &cap24, MaxCalls: &cap1200, BatchSize: 2},
+	)
+	if len(unscored) != len(g.UnscoredPairIDs) {
+		t.Fatalf("batch=2 unscored 数: got %d want %d（批量响应未被数组契约接受）",
+			len(unscored), len(g.UnscoredPairIDs))
+	}
+	scores = PrepareNormalizedScores(scores, nil, nil)
+	// 打分集合与 batch=1 golden 一致（分数按 pair_id 查表，与批次无关）。
+	if len(scores.Order) != len(g.PairScoreOrder) {
+		t.Fatalf("batch=2 score order 长度: got %d want %d", len(scores.Order), len(g.PairScoreOrder))
+	}
+	for id, want := range g.PairScores {
+		got := scores.ByID[domain.PairID(id)].ToMap()
+		assertJSONValueEqual(t, "batch pair_score "+id, got, want)
+	}
 }
 
 // goldenExtracted 重建 report 用的 ExtractedSections（id 全集）。

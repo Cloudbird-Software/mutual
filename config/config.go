@@ -74,18 +74,28 @@ func Load(configPath string, overrides map[string]any) (*Config, error) {
 					break
 				}
 			}
-			cfg.raw, err = applyDirOverlay(cfg.raw, configPath)
+			// 显式 mergeErr：内层 := 声明的 err 会遮蔽外层 Stat 的 err，
+			// 使外层 if err != nil 恒查 nil、YAML 语法错误被静默吞掉
+			//（CodeRabbit）。
+			merged, mergeErr := applyDirOverlay(cfg.raw, configPath)
+			if mergeErr != nil {
+				return nil, mergeErr
+			}
+			cfg.raw = merged
 		} else {
-			data, err := os.ReadFile(configPath)
-			if err != nil {
-				return nil, fmt.Errorf("配置文件读取失败: %w", err)
+			data, readErr := os.ReadFile(configPath)
+			if readErr != nil {
+				return nil, fmt.Errorf("配置文件读取失败: %w", readErr)
 			}
 			crossOrder = mergeKeyOrder(crossOrder,
 				KeyOrder(data, "recipe", "cross_section_weights"))
-			cfg.raw, err = applyFileOverlay(cfg.raw, data, configPath)
-		}
-		if err != nil {
-			return nil, err
+			// 同上：避免 := 遮蔽导致 overlay 错误丢失、raw 被置 nil
+			// 后静默退化成空配置（CodeRabbit）。
+			merged, mergeErr := applyFileOverlay(cfg.raw, data, configPath)
+			if mergeErr != nil {
+				return nil, mergeErr
+			}
+			cfg.raw = merged
 		}
 	}
 	for k, v := range overrides {

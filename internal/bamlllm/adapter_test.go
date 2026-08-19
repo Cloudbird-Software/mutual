@@ -243,3 +243,23 @@ Extract into these sections (use "Not specified" if not found):
 		t.Errorf("raw_text: got %q", raw)
 	}
 }
+
+// TestClientOptsModelMapping 模型名 → 命名 client 映射（CodeRabbit）：
+// "" → 默认 client（nil 选项）；已登记 → WithClient；未登记 →
+// 描述性错误（配置指名了模型却拿不到 = 配置错误，不静默回落）。
+func TestClientOptsModelMapping(t *testing.T) {
+	// 空 model：函数声明默认 client。
+	if opts, err := clientOpts(""); err != nil || len(opts) != 0 {
+		t.Fatalf("空 model: opts=%v err=%v", opts, err)
+	}
+	// 已登记：返回 WithClient 选项（不触网，仅构造）。
+	if opts, err := clientOpts("LongCat-2.0"); err != nil || len(opts) != 1 {
+		t.Fatalf("已登记 model: opts=%v err=%v", opts, err)
+	}
+	// 未登记：fail loud。
+	if _, err := clientOpts("gpt-99-not-registered"); err == nil {
+		t.Fatal("未登记 model 应报错（静默回落默认 client 会吞掉配置错误）")
+	} else if !strings.Contains(err.Error(), "clients.baml") {
+		t.Errorf("错误应指向 clients.baml 登记处: %v", err)
+	}
+}

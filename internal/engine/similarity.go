@@ -22,6 +22,13 @@ import (
 // eps 与 Python 侧 _EPS 一致（零范数判定 / 分母安全阈值）。
 const eps = 1e-12
 
+// denomFloor 是逐 cell 有效分母的绝对值下界（CodeRabbit）：全局权重和
+// 为正（config 加载期已校验）不保证每个 cell 的 Σw_t 安全——自定义
+// 权重可在个别 cell 上让正负权重相消出极小分母，dir 被异常放大。
+// |d| < denomFloor 的 cell 视为无有效信号（dir=0）；golden 配置的分母
+// 量级 ~1.2，永不触界，逐位对拍不受影响。
+const denomFloor = 1e-6
+
 // WeightEntry 是保序的权重项（Key → Value）。
 // 用切片而非 map：融合是浮点累加，term 顺序影响末位精度，
 // 必须与 Python 侧 dict 的 YAML 插入顺序一致（golden 逐位对拍）。
@@ -148,7 +155,12 @@ func ComputeSimilarity(source, target *domain.EmbeddingsBundle, recipe RecipeCon
 		for i := 0; i < m; i++ {
 			for j := 0; j < n; j++ {
 				d := denom[i][j]
-				if d > eps || d < -eps {
+				// |d| ≥ denomFloor 才除：极小分母会把 numer 异常放大
+				// （自定义权重可构造 Σw_t≈0 的 cell，CodeRabbit）。
+				// 负分母（|d| ≥ floor）保留：单负权重 section 是刻意的
+				// 惩罚项设计（Python 基线同语义），golden 路径分母
+				// 量级 ~1.2，不触本防护。
+				if d >= denomFloor || d <= -denomFloor {
 					dir[i][j] = numer[i][j] / d
 				}
 			}

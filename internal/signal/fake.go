@@ -13,6 +13,7 @@ package signal
 
 import (
 	"encoding/json"
+	"regexp"
 	"sort"
 	"strconv"
 	"strings"
@@ -51,10 +52,45 @@ const defaultScoreResponse = `{"a_to_b": 0.5, "b_to_a": 0.5, "reasoning": "fake"
 const introResponse = `{"intro": "Fake intro.", "starter_topics": "Fake topic."}`
 
 // CompleteScore 打分类路径：按 prompt 中出现的 cohort id 查表（§7.1）。
+//
+// 批量契约（CodeRabbit）：prompt 含 "### Pair N: (u1, u2)" 分块时，
+// 逐块查表并按块序返回 JSON 数组（engine.parseScoringResponse 对
+// batch>1 只接受数组——替身只回单对象会让整个 batch 记 unscored，
+// 批量路径永远测不到）。单块保持单对象（Python conftest 逐位对齐）；
+// 无分块标记的非批量 prompt 走整段查表（旧路径）。
 func (f *FakeLLM) CompleteScore(prompt string, model string) (string, error) {
 	_ = model
 	f.CallCount++
-	return scoringResponse(prompt), nil
+	blocks := pairBlockRE.FindAllStringSubmatch(prompt, -1)
+	if len(blocks) == 0 {
+		return scoringResponse(prompt), nil
+	}
+	objs := make([]map[string]any, 0, len(blocks))
+	for _, b := range blocks {
+		objs = append(objs, scoreByPairIDs(b[1], b[2]))
+	}
+	if len(objs) == 1 {
+		out, _ := json.Marshal(objs[0])
+		return string(out), nil
+	}
+	out, _ := json.Marshal(objs)
+	return string(out), nil
+}
+
+// pairBlockRE 匹配批量打分 prompt 的分对标记："### Pair 2: (alice, bob)"
+// （与 engine.buildScoringPrompt 的块头一致）。
+var pairBlockRE = regexp.MustCompile(`(?m)^### Pair \d+: \(([^,\s]+), ([^)\s]+)\)$`)
+
+// scoreByPairIDs 按一对 user id 查表：排序后拼 key，命中返回表值，
+// 未命中返回兜底 0.5/0.5（与整段查表同语义，不做方向交换——
+// Python conftest 的查表即如此）。
+func scoreByPairIDs(u1, u2 string) map[string]any {
+	ids := []string{u1, u2}
+	sort.Strings(ids)
+	if entry, ok := fakeScoreTable[ids[0]+"__"+ids[1]]; ok {
+		return map[string]any{"a_to_b": entry[0], "b_to_a": entry[1], "reasoning": "fake"}
+	}
+	return map[string]any{"a_to_b": 0.5, "b_to_a": 0.5, "reasoning": "fake"}
 }
 
 // CompleteExtract 非打分类路径：固定话术 JSON（§7.1——extract 拿到

@@ -61,32 +61,67 @@ func (c *Client) ctx() (context.Context, context.CancelFunc) {
 	return context.WithTimeout(context.Background(), d)
 }
 
+// modelClients 把 config models.pair_llm 的模型名映射到 baml_src/
+// clients.baml 的命名 client（CodeRabbit：模型选择是版本化 prompt
+// 契约的一部分）。未登记的模型名 fail loud，不静默回落默认 client。
+var modelClients = map[string]string{
+	"LongCat-2.0": "Longcat",
+}
+
+// clientOpts 把 engine 透传的模型名换算成 BAML 调用选项：
+// "" → 函数声明的默认 client；已登记 → WithClient(命名 client)；
+// 未登记 → 描述性错误（配置指名了模型却拿不到 = 配置错误）。
+func clientOpts(model string) ([]baml.CallOptionFunc, error) {
+	if model == "" {
+		return nil, nil
+	}
+	name, ok := modelClients[model]
+	if !ok {
+		return nil, fmt.Errorf(
+			"bamlllm: 模型 %q 未登记进 baml_src/clients.baml 的命名 client（modelClients）——"+
+				"请在 clients.baml 声明并登记映射，而非静默回落默认 client", model)
+	}
+	return []baml.CallOptionFunc{baml.WithClient(name)}, nil
+}
+
 // CompleteScore 打分路径：还原批量 pair 输入 → ScorePairs →
 // JSON 数组（单对 → JSON 对象，与 engine.parseScoringResponse 对齐）。
 func (c *Client) CompleteScore(prompt string, model string) (string, error) {
-	_ = model
-	return c.routeScore(prompt)
+	opts, err := clientOpts(model)
+	if err != nil {
+		return "", err
+	}
+	return c.routeScore(prompt, opts)
 }
 
 // CompleteExtract 提取路径：还原 raw_text → ExtractProfile →
 // {"skills":...,"vision":...,"project":...,"needs":...}。
 func (c *Client) CompleteExtract(prompt string, model string) (string, error) {
-	_ = model
-	return c.routeExtract(prompt)
+	opts, err := clientOpts(model)
+	if err != nil {
+		return "", err
+	}
+	return c.routeExtract(prompt, opts)
 }
 
 // CompleteHyde HyDE 路径：还原分节输入 → GenerateHypothetical →
 // JSON 字符串数组（engine.parseDescriptors 的首选解析形状）。
 func (c *Client) CompleteHyde(prompt string, model string) (string, error) {
-	_ = model
-	return c.routeHyde(prompt)
+	opts, err := clientOpts(model)
+	if err != nil {
+		return "", err
+	}
+	return c.routeHyde(prompt, opts)
 }
 
 // CompleteIntroduce 话术路径：还原双方画像 → DraftIntroduction →
 // {"intro":...,"starter_topics":...}（engine.parseIntroResponse 形状）。
 func (c *Client) CompleteIntroduce(prompt string, model string) (string, error) {
-	_ = model
-	return c.routeIntroduce(prompt)
+	opts, err := clientOpts(model)
+	if err != nil {
+		return "", err
+	}
+	return c.routeIntroduce(prompt, opts)
 }
 
 // routeScore 打分路径：还原批量 pair 输入 → ScorePairs →
@@ -96,14 +131,14 @@ func (c *Client) CompleteIntroduce(prompt string, model string) (string, error) 
 // 消费，BAML 返回乱序/缺失/多余都会错配分数。数量或标识不匹配 →
 // 整批返回错误，engine 按"该次调用失败"处理（batch 内候选对全部
 // 记 unscored，保留 embed 权重，不静默错配）。
-func (c *Client) routeScore(prompt string) (string, error) {
+func (c *Client) routeScore(prompt string, opts []baml.CallOptionFunc) (string, error) {
 	pairs, instruction, err := parseScorePrompt(prompt)
 	if err != nil {
 		return "", err
 	}
 	ctx, cancel := c.ctx()
 	defer cancel()
-	scores, err := baml.ScorePairs(ctx, pairs, instruction)
+	scores, err := baml.ScorePairs(ctx, pairs, instruction, opts...)
 	if err != nil {
 		return "", fmt.Errorf("baml ScorePairs: %w", err)
 	}
@@ -161,12 +196,14 @@ type scoreJSON struct {
 
 // routeExtract 提取路径：还原 raw_text → ExtractProfile →
 // {"skills":...,"vision":...,"project":...,"needs":...}。
-func (c *Client) routeExtract(prompt string) (string, error) {
+func (c *Client) routeExtract(prompt string, opts []baml.CallOptionFunc) (string, error) {
 	raw, err := parseExtractPrompt(prompt)
 	if err != nil {
 		return "", err
 	}
-	sections, err := baml.ExtractProfile(context.Background(), raw)
+	ctx, cancel := c.ctx()
+	defer cancel()
+	sections, err := baml.ExtractProfile(ctx, raw, opts...)
 	if err != nil {
 		return "", fmt.Errorf("baml ExtractProfile: %w", err)
 	}
@@ -181,12 +218,14 @@ func (c *Client) routeExtract(prompt string) (string, error) {
 
 // routeHyde HyDE 路径：还原分节输入 → GenerateHypothetical →
 // JSON 字符串数组（engine.parseDescriptors 的首选解析形状）。
-func (c *Client) routeHyde(prompt string) (string, error) {
+func (c *Client) routeHyde(prompt string, opts []baml.CallOptionFunc) (string, error) {
 	name, content, n, err := parseHydePrompt(prompt)
 	if err != nil {
 		return "", err
 	}
-	descriptors, err := baml.GenerateHypothetical(context.Background(), name, content, int64(n))
+	ctx, cancel := c.ctx()
+	defer cancel()
+	descriptors, err := baml.GenerateHypothetical(ctx, name, content, int64(n), opts...)
 	if err != nil {
 		return "", fmt.Errorf("baml GenerateHypothetical: %w", err)
 	}
@@ -196,12 +235,14 @@ func (c *Client) routeHyde(prompt string) (string, error) {
 
 // routeIntroduce 话术路径：还原双方画像 → DraftIntroduction →
 // {"intro":...,"starter_topics":...}（engine.parseIntroResponse 形状）。
-func (c *Client) routeIntroduce(prompt string) (string, error) {
+func (c *Client) routeIntroduce(prompt string, opts []baml.CallOptionFunc) (string, error) {
 	u1, s1, u2, s2, instruction, err := parseIntroPrompt(prompt)
 	if err != nil {
 		return "", err
 	}
-	draft, err := baml.DraftIntroduction(context.Background(), u1, s1, u2, s2, instruction)
+	ctx, cancel := c.ctx()
+	defer cancel()
+	draft, err := baml.DraftIntroduction(ctx, u1, s1, u2, s2, instruction, opts...)
 	if err != nil {
 		return "", fmt.Errorf("baml DraftIntroduction: %w", err)
 	}

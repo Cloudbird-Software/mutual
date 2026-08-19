@@ -128,6 +128,20 @@ func TestLoadMissingPath(t *testing.T) {
 	}
 }
 
+// TestLoadRejectsSyntacticallyInvalidYAML 语法非法的 YAML（tab 缩进）
+// → 加载期报错，而非被 err 遮蔽吞掉后静默退化成空配置（CodeRabbit）。
+func TestLoadRejectsSyntacticallyInvalidYAML(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "broken.yaml")
+	if err := os.WriteFile(path, []byte("recipe:\n\tsection_weights:\n"), 0o644); err != nil {
+		t.Fatalf("写入临时配置: %v", err)
+	}
+	_, err := Load(path, nil)
+	if err == nil {
+		t.Fatal("语法非法的 YAML 应在 Load 期报错（曾因 err 遮蔽被静默吞掉）")
+	}
+}
+
 // TestLoadRejectsMalformedRecipe 语法合法但类型错误的 recipe
 // （section_weights 被 overlay 替换为列表 / 标量）→ 加载期描述性
 // 错误，而非 pipeline 读取点 panic（qodo PR2 #5）。
