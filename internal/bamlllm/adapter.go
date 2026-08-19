@@ -28,6 +28,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"time"
 
 	baml "github.com/Cloudbird-Software/mutual/baml_client/baml_client"
 	"github.com/Cloudbird-Software/mutual/baml_client/baml_client/types"
@@ -38,10 +39,27 @@ import (
 //
 // model 参数被忽略：模型选择由 baml_src/*.baml 的 client 声明
 // （版本化 prompt 契约的一部分），不由调用点散落指定。
-type Client struct{}
+type Client struct {
+	// Timeout 单次 BAML 调用（底层是网络 LLM 请求）的时限；
+	// 0 = defaultTimeout。engine 的降级路径只覆盖"返回 error"，
+	// 挂起只能靠超时切断（CodeRabbit）。
+	Timeout time.Duration
+}
+
+// defaultTimeout 单次 LLM 调用默认上限。
+const defaultTimeout = 120 * time.Second
 
 // New 返回 BAML 桥接客户端。
 func New() *Client { return &Client{} }
+
+// ctx 派生带超时的调用 context（四条路由共用）。
+func (c *Client) ctx() (context.Context, context.CancelFunc) {
+	d := c.Timeout
+	if d <= 0 {
+		d = defaultTimeout
+	}
+	return context.WithTimeout(context.Background(), d)
+}
 
 // CompleteScore 打分路径：还原批量 pair 输入 → ScorePairs →
 // JSON 数组（单对 → JSON 对象，与 engine.parseScoringResponse 对齐）。
@@ -73,28 +91,65 @@ func (c *Client) CompleteIntroduce(prompt string, model string) (string, error) 
 
 // routeScore 打分路径：还原批量 pair 输入 → ScorePairs →
 // JSON 数组（单对 → JSON 对象，与 engine.parseScoringResponse 对齐）。
+//
+// 结果按 user1/user2 标识对齐请求顺序（CodeRabbit）：engine 侧按位置
+// 消费，BAML 返回乱序/缺失/多余都会错配分数。数量或标识不匹配 →
+// 整批返回错误，engine 按"该次调用失败"处理（batch 内候选对全部
+// 记 unscored，保留 embed 权重，不静默错配）。
 func (c *Client) routeScore(prompt string) (string, error) {
 	pairs, instruction, err := parseScorePrompt(prompt)
 	if err != nil {
 		return "", err
 	}
-	scores, err := baml.ScorePairs(context.Background(), pairs, instruction)
+	ctx, cancel := c.ctx()
+	defer cancel()
+	scores, err := baml.ScorePairs(ctx, pairs, instruction)
 	if err != nil {
 		return "", fmt.Errorf("baml ScorePairs: %w", err)
 	}
-	if len(scores) == 1 {
+	aligned, err := alignScoresByID(pairs, scores)
+	if err != nil {
+		return "", err
+	}
+	if len(aligned) == 1 {
 		out, err := json.Marshal(scoreJSON{
-			AToB: scores[0].A_to_b, BToA: scores[0].B_to_a,
-			Reasoning: scores[0].Reasoning,
+			AToB: aligned[0].A_to_b, BToA: aligned[0].B_to_a,
+			Reasoning: aligned[0].Reasoning,
 		})
 		return string(out), err
 	}
-	arr := make([]scoreJSON, 0, len(scores))
-	for _, s := range scores {
+	arr := make([]scoreJSON, 0, len(aligned))
+	for _, s := range aligned {
 		arr = append(arr, scoreJSON{AToB: s.A_to_b, BToA: s.B_to_a, Reasoning: s.Reasoning})
 	}
 	out, err := json.Marshal(arr)
 	return string(out), err
+}
+
+// alignScoresByID 把 BAML 返回的打分结果按 (user1, user2) 标识对齐
+// 到请求顺序；数量不符或标识不匹配 → 描述性错误（fail loud）。
+func alignScoresByID(pairs []types.PairScoringInput, scores []types.DirectionalPairScore) ([]types.DirectionalPairScore, error) {
+	if len(scores) != len(pairs) {
+		return nil, fmt.Errorf("bamlllm: ScorePairs 返回 %d 条结果，请求 %d 对（数量不匹配，拒绝按位置对齐）",
+			len(scores), len(pairs))
+	}
+	byID := make(map[[2]string]types.DirectionalPairScore, len(scores))
+	for _, s := range scores {
+		key := [2]string{s.User1, s.User2}
+		if _, dup := byID[key]; dup {
+			return nil, fmt.Errorf("bamlllm: ScorePairs 返回重复标识 (%s, %s)", s.User1, s.User2)
+		}
+		byID[key] = s
+	}
+	out := make([]types.DirectionalPairScore, 0, len(pairs))
+	for _, p := range pairs {
+		s, ok := byID[[2]string{p.User1, p.User2}]
+		if !ok {
+			return nil, fmt.Errorf("bamlllm: ScorePairs 结果缺少请求对 (%s, %s) 的标识回显", p.User1, p.User2)
+		}
+		out = append(out, s)
+	}
+	return out, nil
 }
 
 // scoreJSON 是 engine 打分解析器期望的响应形状（a_to_b/b_to_a/reasoning）。

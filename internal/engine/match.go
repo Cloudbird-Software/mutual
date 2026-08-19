@@ -67,6 +67,13 @@ func SolveMatch(prefMatrix *domain.PrefMatrix, matching MatchingConfig, blending
 
 	poolBMax := matching.PoolBMax
 	sameSet := sameIDList(prefMatrix.LeftIDs, prefMatrix.RightIDs)
+	// BMax <= 0 显式定义为"不限度数"（上界 m+n）——否则配置漏写/拼错
+	// b_max 会静默产出零匹配，且 envy=0 看起来像"完美公平"（CodeRabbit）。
+	// Python 基线同样默认 0 但无此防护；golden 配置显式 b_max=4，不受影响。
+	bMax := matching.BMax
+	if bMax <= 0 {
+		bMax = m + n
+	}
 
 	var matchedPairs []pairIJ
 
@@ -113,7 +120,7 @@ func SolveMatch(prefMatrix *domain.PrefMatrix, matching MatchingConfig, blending
 	if sameSet {
 		deg := make([]int, m)
 		for _, c := range candidates {
-			if deg[c.i] < matching.BMax && deg[c.j] < matching.BMax {
+			if deg[c.i] < bMax && deg[c.j] < bMax {
 				matchedPairs = append(matchedPairs, pairIJ{c.i, c.j})
 				matchProb[c.i][c.j] = 1
 				matchProb[c.j][c.i] = 1 // 无向匹配：对称存储
@@ -125,7 +132,7 @@ func SolveMatch(prefMatrix *domain.PrefMatrix, matching MatchingConfig, blending
 		leftDeg := make([]int, m)
 		rightDeg := make([]int, n)
 		for _, c := range candidates {
-			leftOK := leftDeg[c.i] < matching.BMax
+			leftOK := leftDeg[c.i] < bMax
 			rightOK := poolBMax == nil || rightDeg[c.j] < *poolBMax
 			if leftOK && rightOK {
 				matchedPairs = append(matchedPairs, pairIJ{c.i, c.j})
@@ -242,10 +249,19 @@ func CheckEnvy(prefMatrix *domain.PrefMatrix, matchProb domain.Matrix) map[strin
 }
 
 // nswScore NSW 分数：双向偏好的几何平均 sqrt(pref_lr·pref_rl)。
+//
+// 非正乘积（含异号乘积的 NaN 风险）返回 0：Python 基线此处是
+// math.sqrt 对负数直接抛 ValueError，Go 侧以 0 优雅降级（该候选
+// 不参与匹配），golden 路径乘积恒正、逐位一致不受影响。NaN 若
+// 放行会绕过调用侧 nsw <= 0 过滤并破坏排序的严格弱序（CodeRabbit）。
 func nswScore(pm *domain.PrefMatrix, i, j int) float64 {
 	a := pm.PrefLeftToRight[i][j]
 	b := pm.PrefRightToLeft[j][i]
-	return math.Sqrt(a * b)
+	p := a * b
+	if p <= 0 || math.IsNaN(p) || math.IsInf(p, 0) {
+		return 0
+	}
+	return math.Sqrt(p)
 }
 
 // pairIJ 是偏好矩阵中的有序位置对（左行 i，右列 j）。
@@ -260,7 +276,7 @@ func buildEdges(pm *domain.PrefMatrix, matchedPairs []pairIJ, wEmbed, wLLM float
 		user2 := pm.RightIDs[p.j]
 		aToB := pm.PrefLeftToRight[p.i][p.j]
 		bToA := pm.PrefRightToLeft[p.j][p.i]
-		nsw := math.Sqrt(aToB * bToA)
+		nsw := nswScore(pm, p.i, p.j) // 与候选过滤同一实现，避免两处逻辑分叉
 		finalWeight := (wEmbed + wLLM) * nsw
 		edges = append(edges, domain.Edge{
 			User1:        user1,

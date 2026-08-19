@@ -273,6 +273,7 @@ func (c *Config) Validate() error {
 	if !ok {
 		return fmt.Errorf("配置校验失败: recipe 必须是 mapping，当前为 %s", kindOf(recipe))
 	}
+	posSum, negSum := 0.0, 0.0
 	for _, field := range []string{"section_weights", "cross_section_weights"} {
 		v, present := m[field]
 		if !present || v == nil {
@@ -286,7 +287,32 @@ func (c *Config) Validate() error {
 			if !isNumeric(w) {
 				return fmt.Errorf("配置校验失败: recipe.%s.%s 必须是数值，当前为 %s", field, k, kindOf(w))
 			}
+			f := toFloat(w)
+			if f > 0 {
+				posSum += f
+			} else if f < 0 {
+				negSum += f
+			}
 		}
+	}
+	// 负权重规则（CodeRabbit）：引擎按 Python 基线语义对 |denom|>eps 的
+	// cell 一律除法（含负分母——单负权重 section 是刻意的惩罚项设计，
+	// 如默认 recipe 的 skills/-0.10）。配置层保证两条必要条件：
+	// 全量 mask 分母（权重总和）为正，且正权重足以压过负权重总量——
+	// 否则自定义权重可构造出极小/负的有效分母，相似度被异常放大或翻转。
+	// 未配置任何权重（空 recipe）不做该校验（相似度退化为零矩阵是显式行为）。
+	total := posSum + negSum
+	if posSum == 0 && negSum == 0 {
+		return nil
+	}
+	if total <= 0 {
+		return fmt.Errorf(
+			"配置校验失败: recipe 权重总和必须为正（全量 mask 分母），当前 %.4g", total)
+	}
+	if -negSum >= posSum {
+		return fmt.Errorf(
+			"配置校验失败: recipe 负权重总量（%.4g）必须小于正权重总量（%.4g），"+
+				"否则有效分母可为极小/负值，相似度被异常放大或符号翻转", -negSum, posSum)
 	}
 	return nil
 }
@@ -331,10 +357,32 @@ func (c *Config) RecipeConfig() engine.RecipeConfig {
 
 // Blending 返回 embed/llm 分数混合权重。
 func (c *Config) Blending() engine.BlendingConfig {
-	b, _ := c.raw["blending"].(map[string]any)
+	b := mmap(c.raw["blending"])
 	return engine.BlendingConfig{
-		EmbedWeight: toFloatDefault(mmap(b)["embed_weight"], 0.35),
-		LLMWeight:   toFloatDefault(mmap(b)["llm_weight"], 0.65),
+		EmbedWeight: toFloatDefault(b["embed_weight"], 0.35),
+		LLMWeight:   toFloatDefault(b["llm_weight"], 0.65),
+	}
+}
+
+// FeedbackCalibration 返回 calibrate 子命令的参数（CodeRabbit：校准
+// 参数不硬编码——起点 blending 取 Blending()，此处只补模板与窗口）。
+type FeedbackCalibration struct {
+	// PromptBase 是 prompt 校准块的基础模板。
+	PromptBase string
+	// Window 是校准块取最近几条评测历史。
+	Window int
+}
+
+// Calibration 返回 feedback 段的校准参数。
+func (c *Config) Calibration() FeedbackCalibration {
+	f := mmap(c.raw["feedback"])
+	base, _ := f["calibration_prompt_base"].(string)
+	if base == "" {
+		base = "Score this match..."
+	}
+	return FeedbackCalibration{
+		PromptBase: base,
+		Window:     toIntDefault(f["calibration_window"], 3),
 	}
 }
 

@@ -53,6 +53,8 @@ jobs:
   # 不走 CI-Workflows check.yml：其 make setup/check 契约绑定 Python 面
   #（uv sync），PR3 移除 Python 面后收敛回 runtime: go 的复用工作流。
   go:
+    permissions:
+      contents: read
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -129,6 +131,8 @@ jobs:
           exit $MISSING
 
   gate:
+    # 不访问仓库内容与 GitHub API：显式零权限（最小权限原则，CodeRabbit）。
+    permissions: {}
     if: always()
     needs: [hygiene, check, go, deps, deps-audit, adr-required]
     runs-on: ubuntu-latest

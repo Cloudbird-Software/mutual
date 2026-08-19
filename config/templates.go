@@ -131,13 +131,18 @@ func (c *Config) ResolvePromptTemplates(promptPaths map[string]string) (map[stri
 			continue
 		}
 		if path, ok := promptPaths[name]; ok && path != "" {
-			if data, err := os.ReadFile(path); err == nil {
-				if err := ValidatePromptTemplate(name, string(data)); err != nil {
-					return nil, err
-				}
-				out[name] = string(data)
-				continue
+			// 显式指定的 prompt 文件读取失败 = 配置错误（fail loud）。
+			// 静默回落内置默认会让 LLM 用非预期模板产出漂移分数，
+			// 且排查线索为零（CodeRabbit）。
+			data, err := os.ReadFile(path)
+			if err != nil {
+				return nil, fmt.Errorf("prompt 模板 %s 读取失败（path=%s）: %w", name, path, err)
 			}
+			if err := ValidatePromptTemplate(name, string(data)); err != nil {
+				return nil, err
+			}
+			out[name] = string(data)
+			continue
 		}
 		out[name] = def
 	}

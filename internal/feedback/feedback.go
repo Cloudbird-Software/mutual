@@ -77,7 +77,9 @@ func CalibrateWeights(blending engine.BlendingConfig, current, previous *domain.
 	if step <= 0 {
 		step = WStep
 	}
-	if previous == nil {
+	// current/previous 均可为 nil（首轮尚无报告）：一致防护，避免空指针
+	// 中断校准闭环（CodeRabbit）。
+	if current == nil || previous == nil {
 		return blending
 	}
 	if current.HRAt3 >= previous.HRAt3 {

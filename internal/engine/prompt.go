@@ -10,13 +10,22 @@ import (
 // "{key}" 占位符替换为 mapping[key]；缺失的 key 渲染为空串
 // （_MissingKeyDict.__missing__ 行为），不报错。
 //
+// 转义（CodeRabbit）：与 Python format 一致，"{{" → 字面 "{"、
+// "}}" → 字面 "}"——内置模板的 JSON 示例块（{{"a_to_b": ...}}）
+// 依赖双侧转义才能渲染出正确的单大括号 JSON。
 // 仅支持简单 {key} 形式（无 format spec / 索引）——内置 prompt 模板
-// 只用简单占位符；遇到 "{{" / "}}" 字面量大括号按字面输出。
+// 只用简单占位符。
 // 与 Python 一致的行为边界：模板缺失占位符不崩（_safe_format）。
 func pyFormatMap(template string, mapping map[string]string) string {
 	var sb strings.Builder
 	runes := []rune(template)
 	for i := 0; i < len(runes); i++ {
+		// "}}" → 字面 "}"（Python format 右大括号转义）。
+		if runes[i] == '}' && i+1 < len(runes) && runes[i+1] == '}' {
+			sb.WriteRune('}')
+			i++
+			continue
+		}
 		if runes[i] != '{' {
 			sb.WriteRune(runes[i])
 			continue

@@ -1,6 +1,7 @@
 package engine
 
 import (
+	"fmt"
 	"math"
 
 	"github.com/Cloudbird-Software/mutual/internal/domain"
@@ -61,6 +62,16 @@ func Evaluate(in EvaluateInput) (domain.EvaluationReport, error) {
 	leftEnvy, rightEnvy := 0, 0
 	if in.PrefMatrix != nil && in.MatchProb != nil &&
 		in.MatchProb.Rows() > 0 && in.MatchProb.Cols() > 0 && anyAboveHalf(in.MatchProb) {
+		// 形状契约（CodeRabbit）：PrefMatrix 与 MatchProb 是两个独立字段，
+		// 不配套时 envyCount 的 pref[i][own[0]] 会越界 panic——与
+		// predictions/ground_truth 同一契约纪律：畸形输入拒绝计算。
+		if in.PrefMatrix.M() != in.MatchProb.Rows() || in.PrefMatrix.N() != in.MatchProb.Cols() {
+			return domain.EvaluationReport{}, &domain.ContractError{
+				Field: "pref_matrix/match_prob",
+				Reason: fmt.Sprintf("形状不一致：pref %d×%d vs match_prob %d×%d，envy 输入畸形，拒绝计算",
+					in.PrefMatrix.M(), in.PrefMatrix.N(), in.MatchProb.Rows(), in.MatchProb.Cols()),
+			}
+		}
 		leftEnvy = envyCount(in.PrefMatrix.PrefLeftToRight, in.MatchProb)
 		// 右侧：转置视角（行 = right 侧，列 = left 侧）。
 		transposed := transpose(in.MatchProb)

@@ -58,6 +58,7 @@ evaluate 选项:
   --json               以 JSON 输出评测报告
 
 calibrate 选项:
+  --config PATH        配置文件路径（校准起点 blending 与参数来源，默认 config/default.yaml）
   --history PATH       评测历史 JSON 文件（list of EvaluationReport.to_dict()，时间升序）
   --embedding-only     只输出 prompt 校准块，不调权重
 `)
@@ -86,13 +87,25 @@ func cmdEvaluate(args []string) int {
 		return 2
 	}
 
+	// 输入完整性（CodeRabbit）：map 读缺失 key 得零值报告——envy=0 会让
+	// 门禁在数据缺失时反而变宽松。CI 门禁必须在输入不完整时失败。
 	scenarioReports := make([]domain.EvaluationReport, 0, len(bench.ScenarioNames))
 	for _, name := range bench.ScenarioNames {
-		scenarioReports = append(scenarioReports, reports[name])
+		r, ok := reports[name]
+		if !ok {
+			fmt.Fprintf(os.Stderr, "评测套件缺少场景 %q（输入不完整，拒绝判定门禁）\n", name)
+			return 2
+		}
+		scenarioReports = append(scenarioReports, r)
+	}
+	marketReport, ok := reports["market"]
+	if !ok {
+		fmt.Fprintln(os.Stderr, "评测套件缺少 market 场景（输入不完整，拒绝判定门禁）")
+		return 2
 	}
 	qualityAgg := bench.AggregateReports(scenarioReports, bench.ScenarioNames)
 	// envy 门禁覆盖全部信号源（三场景 + market 构造性 oracle）。
-	totalEnvy := qualityAgg.TotalEnvy() + reports["market"].TotalEnvy()
+	totalEnvy := qualityAgg.TotalEnvy() + marketReport.TotalEnvy()
 	gateReport := domain.EvaluationReport{
 		HRAt1:          qualityAgg.HRAt1,
 		HRAt3:          qualityAgg.HRAt3,
@@ -147,11 +160,22 @@ func cmdEvaluate(args []string) int {
 }
 
 // cmdCalibrate 按评测历史做权重/prompt 校准（反馈注入）。
+//
+// 参数来源（CodeRabbit）：起点 blending / 基础 prompt / 窗口大小均取
+// 自配置文件（--config，默认 config/default.yaml），不硬编码——与
+// evaluate 的配置口径一致，YAML 调整后两者不再分歧。
 func cmdCalibrate(args []string) int {
 	fs := flag.NewFlagSet("calibrate", flag.ExitOnError)
+	configPath := fs.String("config", "config/default.yaml", "配置文件路径（校准起点与参数来源）")
 	historyPath := fs.String("history", "", "评测历史 JSON 文件（时间升序）")
 	embeddingOnly := fs.Bool("embedding-only", false, "只输出 prompt 校准块，不调权重")
 	_ = fs.Parse(args)
+
+	cfg, err := loadConfigOrDefault(*configPath)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "配置加载失败: %v\n", err)
+		return 2
+	}
 
 	if *historyPath == "" {
 		fmt.Fprintln(os.Stderr, "--history 是必需参数")
@@ -183,12 +207,12 @@ func cmdCalibrate(args []string) int {
 		fmt.Println("history 不足两条：权重校准需要 current+previous，输出 prompt 校准块。")
 	}
 
-	promptBlock := feedback.CalibratePrompt("Score this match...", history, 3)
+	promptBlock := feedback.CalibratePrompt(cfg.Calibration().PromptBase, history, cfg.Calibration().Window)
 	fmt.Println("=== Prompt 校准块 ===")
 	fmt.Println(promptBlock)
 
 	if !*embeddingOnly && len(history) >= 2 {
-		blending := engine.BlendingConfig{EmbedWeight: 0.35, LLMWeight: 0.65}
+		blending := cfg.Blending() // 起点与 evaluate 同源（配置驱动）
 		current := history[len(history)-1]
 		previous := history[len(history)-2]
 		newBlending := feedback.CalibrateWeights(blending, &current, &previous, 0)

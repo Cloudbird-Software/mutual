@@ -235,22 +235,23 @@ func BuildBipartitePrefMatrix(scores *ScoreResult, leftIDs, rightIDs []domain.Us
 
 	for _, id := range scores.Order {
 		ps := scores.ByID[id]
+		// 自配对（左右同 id）不填，先于方向判定（CodeRabbit：原先放在
+		// 分支内，forward 命中后 continue 会跳过 reverse 分支——batch
+		// 模式 leftIDs ⊆ rightIDs，集合重叠是常态，双向都可能命中）。
+		if ps.User1 == ps.User2 {
+			continue
+		}
 		aVal, bVal := directionalOrEmbed(ps)
+		// 正向：user1 在左、user2 在右。
 		if i, okI := leftPos[ps.User1]; okI {
 			if j, okJ := rightPos[ps.User2]; okJ {
-				if ps.User1 == ps.User2 {
-					continue
-				}
 				pm.PrefLeftToRight[i][j] = aVal
 				pm.PrefRightToLeft[j][i] = bVal
-				continue
 			}
 		}
+		// 反向：user2 在左、user1 在右（分数方向对调）。
 		if i, okI := leftPos[ps.User2]; okI {
 			if j, okJ := rightPos[ps.User1]; okJ {
-				if ps.User1 == ps.User2 {
-					continue
-				}
 				pm.PrefLeftToRight[i][j] = bVal
 				pm.PrefRightToLeft[j][i] = aVal
 			}

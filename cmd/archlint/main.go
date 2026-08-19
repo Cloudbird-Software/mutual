@@ -78,8 +78,20 @@ func run() error {
 		}
 		checked++
 		fromLayer, _ := layer(pkgDir)
+		// -2 = internal/config 下未登记进 layerOf 的包：fail-closed 报违规。
+		// 若按 "< 0 外部依赖" 吞掉，新增 internal/xxx 会完全绕过检查，
+		// 门禁对新包静默失效（CodeRabbit）。
+		if fromLayer == -2 {
+			violations = append(violations,
+				fmt.Sprintf("%s 未登记进 cmd/archlint/main.go 的 layerOf（新包必须登记，fail-closed）", pkgDir))
+		}
 		for _, imp := range imports {
 			impLayer, impName := layer(imp)
+			if impLayer == -2 {
+				violations = append(violations,
+					fmt.Sprintf("%s -> %s：被导入包未登记进 layerOf（新包必须登记，fail-closed）", pkgDir, impName))
+				continue
+			}
 			if impLayer < 0 || fromLayer < 0 {
 				continue // 外部依赖 / 未分层路径（含 baml_client）
 			}
@@ -94,6 +106,14 @@ func run() error {
 		return err
 	}
 	sort.Strings(violations)
+	// 去重：未登记包按文件逐个报，同一包会重复出现（CodeRabbit 建议）。
+	deduped := violations[:0]
+	for i, v := range violations {
+		if i == 0 || v != violations[i-1] {
+			deduped = append(deduped, v)
+		}
+	}
+	violations = deduped
 	if len(violations) > 0 {
 		return fmt.Errorf("依赖边界违规（低层依赖高层）：%d 处\n  %s",
 			len(violations), strings.Join(violations, "\n  "))

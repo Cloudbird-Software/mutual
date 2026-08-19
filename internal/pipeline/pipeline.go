@@ -256,7 +256,13 @@ func RunBatchMatch(in BatchMatchInput, cfg *config.Config, deps Deps) (*BatchMat
 		return nil, fmt.Errorf("BatchMatchInput.MemberIDs 为空")
 	}
 
+	// Python 基线 runners.py: member_set = set(member_ids)——填充后
+	// 再筛选（CodeRabbit：漏掉填充循环会让 memberExtracted 恒为空，
+	// member 侧 sections 的优先级语义失效）。
 	memberSet := make(map[domain.UserID]bool, len(in.MemberIDs))
+	for _, id := range in.MemberIDs {
+		memberSet[id] = true
+	}
 	var memberExtracted []domain.ExtractedSections
 	for _, es := range in.PoolSections {
 		if memberSet[es.ID] {

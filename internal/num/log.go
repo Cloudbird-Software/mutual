@@ -33,16 +33,20 @@ func GlibcLog(x float64) float64 {
 		r := x - 1.0
 		r2 := r * r
 		r3 := r * r2
-		y := r3 * (poly1[1] + r*poly1[2] + r2*poly1[3] +
-			r3*(poly1[4]+r*poly1[5]+r2*poly1[6]+
-				r3*(poly1[7]+r*poly1[8]+r2*poly1[9]+r3*poly1[10])))
+		// 每个喂入加法的乘积都套显式 float64()：Go 规范允许编译器把
+		// x*y+z 融合成 FMA（arm64/ppc64le/s390x/riscv64 实际发生），
+		// 显式转换强制中间舍入（规范规定的唯一融合屏障）。amd64 本就
+		// 不融合，位级结果不变（CodeRabbit）。
+		y := float64(r3 * (poly1[1] + float64(r*poly1[2]) + float64(r2*poly1[3]) +
+			float64(r3*(poly1[4]+float64(r*poly1[5])+float64(r2*poly1[6])+
+				float64(r3*(poly1[7]+float64(r*poly1[8])+float64(r2*poly1[9])+float64(r3*poly1[10])))))))
 		w := r * 0x1p27
 		rhi := r + w - w
 		rlo := r - rhi
-		w = rhi * rhi * poly1[0]
+		w = float64(rhi * rhi * poly1[0])
 		hi := r + w
 		lo := r - hi + w
-		lo += poly1[0] * rlo * (rhi + r)
+		lo += float64(poly1[0] * rlo * (rhi + r))
 		y += lo
 		y += hi
 		return y
@@ -74,17 +78,20 @@ func GlibcLog(x float64) float64 {
 	z := math.Float64frombits(iz)
 
 	// log(x) = log1p(z/c-1) + log(c) + k·ln2；r ≈ z/c - 1，|r| < 1/(2N)。
-	r := (z - logTab2[i].chi - logTab2[i].clo) * invc
+	// 显式 float64() 同上：阻止非 amd64 后端把乘加融合成 FMA。
+	r := float64((z - logTab2[i].chi - logTab2[i].clo) * invc)
 	kd := float64(k)
 
 	// hi + lo = r + log(c) + k·ln2（高低位分离，吸收大项舍入误差）。
-	w := kd*ln2hi + logc
+	w := float64(kd*ln2hi) + logc
 	hi := w + r
-	lo := w - hi + r + kd*ln2lo
+	lo := w - hi + r + float64(kd*ln2lo)
 
 	// log(x) = lo + (log1p(r) - r) + hi，多项式逼近 log1p(r) - r。
 	r2 := r * r
-	y := lo + r2*poly[0] + r*r2*(poly[1]+r*poly[2]+r2*(poly[3]+r*poly[4])) + hi
+	y := lo + float64(r2*poly[0]) +
+		float64(r*r2*(poly[1]+float64(r*poly[2])+float64(r2*(poly[3]+float64(r*poly[4]))))) +
+		hi
 	return y
 }
 
