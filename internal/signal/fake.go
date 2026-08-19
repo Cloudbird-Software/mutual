@@ -1,8 +1,10 @@
 // Fake 是离线 golden test 用的确定性替身（spec/04-fixtures.md §7）。
 //
 // 契约（变更契约 = spec 变更，由测试守护）：
-//   - FakeLLM：prompt 含 "a_to_b" → 打分路径（按 prompt 中出现的
-//     cohort id 查表，§7.1）；否则 → 话术路径（固定 intro JSON）。
+//   - FakeLLM：打分调用 → 按 prompt 中出现的 cohort id 查表（§7.1）；
+//     非打分调用 → 固定 intro JSON（§7.1"否则 → 非打分类路径"）。
+//     Go 侧按阶段类型化分发（engine.LLMClient 四方法），可观察行为
+//     与 §7.1 的 Python 内容路由逐位一致。
 //   - FakeEmbedder：每条文本独立 RandomState(hash_text(t) % 2^32)
 //     产 128 维 randn——content-addressed（同文本同向量，跨 run 稳定）。
 //
@@ -36,7 +38,7 @@ var fakeScoreTable = map[string][2]float64{
 // fakeCohortIDs 是 fake 路由识别的 cohort id 全集。
 var fakeCohortIDs = []string{"alice", "bob", "carol", "david"}
 
-// FakeLLM 满足 engine.LLMClient（Complete(prompt, model)）。
+// FakeLLM 满足 engine.LLMClient（按阶段类型化的四方法）。
 type FakeLLM struct {
 	// CallCount 是累计调用次数（缓存命中率断言用）。
 	CallCount int
@@ -45,15 +47,38 @@ type FakeLLM struct {
 // defaultScoreResponse 是查表未命中时的兜底打分响应。
 const defaultScoreResponse = `{"a_to_b": 0.5, "b_to_a": 0.5, "reasoning": "fake"}`
 
-// introResponse 是话术路径的固定响应。
+// introResponse 是非打分路径的固定响应（§7.1"否则 → 非打分类路径"）。
 const introResponse = `{"intro": "Fake intro.", "starter_topics": "Fake topic."}`
 
-// Complete 实现 engine.LLMClient：按 prompt 内容路由（§7.1）。
-func (f *FakeLLM) Complete(prompt string, model string) (string, error) {
+// CompleteScore 打分类路径：按 prompt 中出现的 cohort id 查表（§7.1）。
+func (f *FakeLLM) CompleteScore(prompt string, model string) (string, error) {
+	_ = model
 	f.CallCount++
-	if strings.Contains(prompt, "a_to_b") {
-		return scoringResponse(prompt), nil
-	}
+	return scoringResponse(prompt), nil
+}
+
+// CompleteExtract 非打分类路径：固定话术 JSON（§7.1——extract 拿到
+// 该响应会全分节退化，golden 约定里 extract/hyde 由 scripted 替身接管）。
+func (f *FakeLLM) CompleteExtract(prompt string, model string) (string, error) {
+	_ = prompt
+	_ = model
+	f.CallCount++
+	return introResponse, nil
+}
+
+// CompleteHyde 非打分类路径：固定话术 JSON（§7.1）。
+func (f *FakeLLM) CompleteHyde(prompt string, model string) (string, error) {
+	_ = prompt
+	_ = model
+	f.CallCount++
+	return introResponse, nil
+}
+
+// CompleteIntroduce 话术路径：固定 intro JSON（§7.1）。
+func (f *FakeLLM) CompleteIntroduce(prompt string, model string) (string, error) {
+	_ = prompt
+	_ = model
+	f.CallCount++
 	return introResponse, nil
 }
 

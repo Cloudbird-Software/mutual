@@ -38,7 +38,7 @@ func GenerateIntroductions(
 	out := make(map[domain.PairID]domain.Introduction, len(edges))
 	for _, edge := range edges {
 		prompt := buildIntroPrompt(edge, sectionsDict, instruction, promptTemplate)
-		raw, err := llm.Complete(prompt, model)
+		raw, err := llm.CompleteIntroduce(prompt, model)
 		var parsed *introPayload
 		if err == nil {
 			parsed = parseIntroResponse(raw)

@@ -327,23 +327,25 @@ func findEdge(t *testing.T, edges []domain.Edge, pairID string) domain.Edge {
 // Phase 2：profiles 全链路（scripted LLM 承担 extract/hyde）
 // ---------------------------------------------------------------------------
 
-// scriptedLLM 在 FakeLLM 之上补 extract/hyde 两条路由：
-// FakeLLM 对非打分 prompt 返回话术 JSON，会使 extract 全部退化
+// scriptedLLM 在 FakeLLM 之上补 extract/hyde 两条路径：
+// FakeLLM 对非打分调用返回话术 JSON，会使 extract 全部退化
 // （Python test_golden.py 有同样的观察），故 golden 约定里
-// extract/hyde 由替身接管。
+// extract/hyde 由替身接管（按阶段类型化分发）。
 type scriptedLLM struct {
 	signal.FakeLLM
 	extractResponse string
 }
 
-func (s *scriptedLLM) Complete(prompt string, model string) (string, error) {
-	if strings.Contains(prompt, "Extract structured sections") {
-		return s.extractResponse, nil
-	}
-	if strings.Contains(prompt, "hypothetical") {
-		return `["looks for collaborators with complementary skills"]`, nil
-	}
-	return s.FakeLLM.Complete(prompt, model)
+func (s *scriptedLLM) CompleteExtract(prompt string, model string) (string, error) {
+	_ = prompt
+	_ = model
+	return s.extractResponse, nil
+}
+
+func (s *scriptedLLM) CompleteHyde(prompt string, model string) (string, error) {
+	_ = prompt
+	_ = model
+	return `["looks for collaborators with complementary skills"]`, nil
 }
 
 func TestPipelineFullChainFromProfiles(t *testing.T) {

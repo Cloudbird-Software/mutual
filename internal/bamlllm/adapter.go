@@ -7,15 +7,18 @@
 // 输入，调用 BAML 函数，再把类型化结果序列化回 engine 各解析器
 // 期望的 JSON 形状。
 //
-// 路由约定（与 FakeLLM 同构，spec/04-fixtures.md §7.1）：
-//   - 含 "a_to_b"                      → ScorePairs（批量打分）
-//   - 含 "Profile text:"               → ExtractProfile（分节提取）
-//   - 含 "hypothetical description"    → GenerateHypothetical（HyDE）
-//   - 其余                              → DraftIntroduction（话术）
+// 分发契约（qodo PR2 #1/#4）：engine.LLMClient 按阶段类型化分发
+// （CompleteScore/CompleteExtract/CompleteHyde/CompleteIntroduce），
+// 路由由调用上下文决定——prompt 里插值的用户文本不可信，不得作为
+// 阶段判别器（否则画像含 "a_to_b" 字样会劫持路由）。
 //
-// 失败语义：prompt 结构不符合默认模板标记时返回错误——engine 按
-// "该次调用失败"处理（score → 未打分保留 embed 权重；introduce →
-// 模板兜底），不中断 pipeline（spec/05-boundaries.md §3）。
+// 参数还原依赖默认模板的结构标记（"### Pair N:"、"Profile text:"
+// 等）。自定义模板必须保留这些标记：config.ResolvePromptTemplates
+// 在加载时校验（fail loud），标记缺失 = 配置错误，而非静默降级。
+//
+// 失败语义：prompt 结构还原失败时返回错误——engine 按"该次调用
+// 失败"处理（score → 未打分保留 embed 权重；introduce → 模板兜底），
+// 不中断 pipeline（spec/05-boundaries.md §3）。
 package bamlllm
 
 import (
@@ -30,7 +33,8 @@ import (
 	"github.com/Cloudbird-Software/mutual/baml_client/baml_client/types"
 )
 
-// Client 实现 engine.LLMClient：字符串 prompt → BAML 类型化调用。
+// Client 实现 engine.LLMClient：按阶段类型化的字符串 prompt →
+// BAML 类型化调用。
 //
 // model 参数被忽略：模型选择由 baml_src/*.baml 的 client 声明
 // （版本化 prompt 契约的一部分），不由调用点散落指定。
@@ -39,34 +43,32 @@ type Client struct{}
 // New 返回 BAML 桥接客户端。
 func New() *Client { return &Client{} }
 
-// Complete 实现 engine.LLMClient：按 prompt 标记路由到 BAML 函数。
-func (c *Client) Complete(prompt string, model string) (string, error) {
+// CompleteScore 打分路径：还原批量 pair 输入 → ScorePairs →
+// JSON 数组（单对 → JSON 对象，与 engine.parseScoringResponse 对齐）。
+func (c *Client) CompleteScore(prompt string, model string) (string, error) {
 	_ = model
-	switch routeOf(prompt) {
-	case "score":
-		return c.routeScore(prompt)
-	case "extract":
-		return c.routeExtract(prompt)
-	case "hyde":
-		return c.routeHyde(prompt)
-	default:
-		return c.routeIntroduce(prompt)
-	}
+	return c.routeScore(prompt)
 }
 
-// routeOf 返回 prompt 的路由判定（测试可直断言；与 FakeLLM 的
-// §7.1 路由约定同构）。
-func routeOf(prompt string) string {
-	switch {
-	case strings.Contains(prompt, "a_to_b"):
-		return "score"
-	case strings.Contains(prompt, "Profile text:"):
-		return "extract"
-	case strings.Contains(prompt, "hypothetical description"):
-		return "hyde"
-	default:
-		return "intro"
-	}
+// CompleteExtract 提取路径：还原 raw_text → ExtractProfile →
+// {"skills":...,"vision":...,"project":...,"needs":...}。
+func (c *Client) CompleteExtract(prompt string, model string) (string, error) {
+	_ = model
+	return c.routeExtract(prompt)
+}
+
+// CompleteHyde HyDE 路径：还原分节输入 → GenerateHypothetical →
+// JSON 字符串数组（engine.parseDescriptors 的首选解析形状）。
+func (c *Client) CompleteHyde(prompt string, model string) (string, error) {
+	_ = model
+	return c.routeHyde(prompt)
+}
+
+// CompleteIntroduce 话术路径：还原双方画像 → DraftIntroduction →
+// {"intro":...,"starter_topics":...}（engine.parseIntroResponse 形状）。
+func (c *Client) CompleteIntroduce(prompt string, model string) (string, error) {
+	_ = model
+	return c.routeIntroduce(prompt)
 }
 
 // routeScore 打分路径：还原批量 pair 输入 → ScorePairs →
@@ -237,13 +239,18 @@ func firstParagraph(s string) string {
 
 // parseExtractPrompt 从提取 prompt 还原 raw_text
 // （默认模板标记：Profile text: … Extract into these sections）。
+//
+// 边界（qodo PR2 #2）：画像文本插值在两个标记**之间**，且可能包含
+// 标记字样本身。begin 用首个出现（模板头在 raw_text 之前，首个必是
+// 模板的）；end 用**末个**出现（模板指令在 raw_text 之后，末个必是
+// 模板的）——用首个会把含该短语的画像静默截断。
 func parseExtractPrompt(prompt string) (string, error) {
 	const (
 		begin = "Profile text:"
 		end   = "Extract into these sections"
 	)
 	iB := strings.Index(prompt, begin)
-	iE := strings.Index(prompt, end)
+	iE := strings.LastIndex(prompt, end)
 	if iB == -1 || iE == -1 || iE <= iB {
 		return "", fmt.Errorf("bamlllm: 提取 prompt 缺少 Profile text / Extract into these sections 标记")
 	}
@@ -258,6 +265,10 @@ var (
 )
 
 // parseHydePrompt 从 HyDE prompt 还原分节名、内容与描述符数量。
+//
+// 内容截至 "Write N hypothetical" 计数行：取**末个**正则匹配——
+// 分节内容自身可能含 "Write …" 字样，首个匹配会把内容截断
+// （与 parseExtractPrompt 的末界原则同源，qodo PR2 #2）。
 func parseHydePrompt(prompt string) (name, content string, n int, err error) {
 	sec := hydeSectionRE.FindStringSubmatch(prompt)
 	if sec == nil {
@@ -268,19 +279,16 @@ func parseHydePrompt(prompt string) (name, content string, n int, err error) {
 	if iC == -1 {
 		return "", "", 0, fmt.Errorf("bamlllm: HyDE prompt 缺少 \"Content:\" 行")
 	}
-	// 内容截至 "Write N hypothetical" 行。
 	rest := prompt[iC+len("Content:"):]
-	iW := strings.Index(rest, "Write ")
-	if iW >= 0 {
-		rest = rest[:iW]
-	}
-	content = strings.TrimSpace(rest)
 	n = 1
-	if m := hydeCountRE.FindStringSubmatch(prompt); m != nil {
-		if v, e := strconv.Atoi(m[1]); e == nil {
+	if locs := hydeCountRE.FindAllStringSubmatchIndex(rest, -1); len(locs) > 0 {
+		last := locs[len(locs)-1]
+		if v, e := strconv.Atoi(rest[last[2]:last[3]]); e == nil {
 			n = v
 		}
+		rest = rest[:last[0]]
 	}
+	content = strings.TrimSpace(rest)
 	return name, content, n, nil
 }
 

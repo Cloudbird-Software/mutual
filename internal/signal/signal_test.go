@@ -9,13 +9,13 @@ import (
 	"github.com/Cloudbird-Software/mutual/internal/rng"
 )
 
-// TestFakeLLMScoringRoute 打分类路径：prompt 含 "a_to_b" → 按 prompt
-// 中出现的 cohort id 查表（spec/04-fixtures.md §7.1，契约由测试守护）。
+// TestFakeLLMScoringRoute 打分类路径：按 prompt 中出现的 cohort id
+// 查表（spec/04-fixtures.md §7.1，契约由测试守护）。
 func TestFakeLLMScoringRoute(t *testing.T) {
 	f := &FakeLLM{}
-	raw, err := f.Complete("Score (alice, bob) respond a_to_b b_to_a", "m")
+	raw, err := f.CompleteScore("Score (alice, bob) respond a_to_b b_to_a", "m")
 	if err != nil {
-		t.Fatalf("Complete: %v", err)
+		t.Fatalf("CompleteScore: %v", err)
 	}
 	var resp struct {
 		AToB float64 `json:"a_to_b"`
@@ -29,19 +29,28 @@ func TestFakeLLMScoringRoute(t *testing.T) {
 	}
 }
 
-// TestFakeLLMIntroRoute 非打分 prompt → 固定话术 JSON。
+// TestFakeLLMIntroRoute 非打分调用 → 固定话术 JSON（§7.1）。
 func TestFakeLLMIntroRoute(t *testing.T) {
 	f := &FakeLLM{}
-	raw, _ := f.Complete("Write an introduction with starter topics", "m")
-	if !strings.Contains(raw, "Fake intro.") {
-		t.Errorf("话术路径: got %s", raw)
+	for name, call := range map[string]func(string, string) (string, error){
+		"introduce": f.CompleteIntroduce,
+		"extract":   f.CompleteExtract,
+		"hyde":      f.CompleteHyde,
+	} {
+		raw, err := call("Write an introduction with starter topics", "m")
+		if err != nil {
+			t.Fatalf("%s: %v", name, err)
+		}
+		if !strings.Contains(raw, "Fake intro.") {
+			t.Errorf("%s 非打分路径: got %s", name, raw)
+		}
 	}
 }
 
 // TestFakeLLMTableMiss 查表未命中（cohort id 不足 2 个）→ 0.5/0.5 兜底。
 func TestFakeLLMTableMiss(t *testing.T) {
 	f := &FakeLLM{}
-	raw, _ := f.Complete("score a_to_b for alice alone", "m")
+	raw, _ := f.CompleteScore("score a_to_b for alice alone", "m")
 	var resp struct {
 		AToB float64 `json:"a_to_b"`
 		BToA float64 `json:"b_to_a"`
@@ -57,10 +66,24 @@ func TestFakeLLMTableMiss(t *testing.T) {
 // TestFakeLLMCallCount 调用计数（缓存命中率断言用）。
 func TestFakeLLMCallCount(t *testing.T) {
 	f := &FakeLLM{}
-	_, _ = f.Complete("x", "m")
-	_, _ = f.Complete("y", "m")
+	_, _ = f.CompleteScore("x", "m")
+	_, _ = f.CompleteIntroduce("y", "m")
 	if f.CallCount != 2 {
 		t.Errorf("CallCount: got %d want 2", f.CallCount)
+	}
+}
+
+// TestFakeLLMNoContentRouting 打分与非打分路径不靠 prompt 内容判别：
+// 画像文本含 "a_to_b" 字样也不影响阶段分发（qodo PR2 #1）。
+func TestFakeLLMNoContentRouting(t *testing.T) {
+	f := &FakeLLM{}
+	raw, _ := f.CompleteIntroduce("mention a_to_b in a profile-like text", "m")
+	if !strings.Contains(raw, "Fake intro.") {
+		t.Errorf("含 a_to_b 的话术 prompt 不得走打分路径: got %s", raw)
+	}
+	raw, _ = f.CompleteExtract("Profile text: talks about a_to_b markers", "m")
+	if !strings.Contains(raw, "Fake intro.") {
+		t.Errorf("含 a_to_b 的提取 prompt 不得走打分路径: got %s", raw)
 	}
 }
 

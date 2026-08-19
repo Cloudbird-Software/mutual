@@ -3,6 +3,7 @@ package config
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -124,6 +125,152 @@ func TestLoadDirOverlay(t *testing.T) {
 func TestLoadMissingPath(t *testing.T) {
 	if _, err := Load("/nonexistent/config.yaml", nil); err == nil {
 		t.Fatal("不存在的路径应报错")
+	}
+}
+
+// TestLoadRejectsMalformedRecipe 语法合法但类型错误的 recipe
+// （section_weights 被 overlay 替换为列表 / 标量）→ 加载期描述性
+// 错误，而非 pipeline 读取点 panic（qodo PR2 #5）。
+// null 不在内：Python 语义把它当缺省（or {}），此处一致处理。
+func TestLoadRejectsMalformedRecipe(t *testing.T) {
+	cases := []struct {
+		name string
+		yaml string
+	}{
+		{"list", "recipe:\n  section_weights: [1, 2]\n"},
+		{"scalar", "recipe:\n  section_weights: 0.5\n"},
+		{"cross_scalar", "recipe:\n  cross_section_weights: 0.5\n"},
+		{"weight_string", "recipe:\n  section_weights:\n    skills: \"0.3\"\n"},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			dir := t.TempDir()
+			path := filepath.Join(dir, "custom.yaml")
+			if err := os.WriteFile(path, []byte(tc.yaml), 0o644); err != nil {
+				t.Fatalf("写入临时配置: %v", err)
+			}
+			_, err := Load(path, nil)
+			if err == nil {
+				t.Fatalf("类型错误的 recipe 应在 Load 期报错（%s）", tc.yaml)
+			}
+			if !strings.Contains(err.Error(), "recipe") {
+				t.Errorf("错误应指向 recipe 段: %v", err)
+			}
+		})
+	}
+}
+
+// TestLoadNullRecipeSectionIsNullSemanticallyNull section_weights: null
+// 按缺省处理（Python `or {}` 语义），不报错、不 panic。
+func TestLoadNullRecipeSectionIsNullSemanticallyNull(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "custom.yaml")
+	if err := os.WriteFile(path, []byte("recipe:\n  section_weights:\n"), 0o644); err != nil {
+		t.Fatalf("写入临时配置: %v", err)
+	}
+	cfg, err := Load(path, nil)
+	if err != nil {
+		t.Fatalf("null 应视作缺省（Python 语义）: %v", err)
+	}
+	if len(cfg.Recipe().SectionWeights) != 0 {
+		t.Errorf("null section_weights → 空权重: got %v", cfg.Recipe().SectionWeights)
+	}
+}
+
+// TestLoadOverrideRejectsScalarRecipe override 把 section_weights
+// 整体替换为标量 → 同样在加载期拦截。
+func TestLoadOverrideRejectsScalarRecipe(t *testing.T) {
+	_, err := Load("", map[string]any{"recipe.section_weights": 0.4})
+	if err == nil || !strings.Contains(err.Error(), "section_weights") {
+		t.Fatalf("标量 override 应报错: got %v", err)
+	}
+}
+
+// TestRecipeDirectConstructNoPanic 直接构造的 Config（无 crossOrder）
+// 读取畸形 recipe 不 panic（防御性兜底）。
+func TestRecipeDirectConstructNoPanic(t *testing.T) {
+	cfg := &Config{raw: map[string]any{
+		"recipe": map[string]any{"section_weights": []any{1, 2}},
+	}}
+	view := cfg.Recipe() // 不 panic 即通过
+	if len(view.SectionWeights) != 0 {
+		t.Errorf("畸形 section_weights 应视作缺省: got %v", view.SectionWeights)
+	}
+}
+
+// TestCrossSectionWeightPreservesYAMLOrder cross_section_weights 按
+// YAML 文件序输出（qodo PR2 #6）：融合是浮点累加，term 顺序影响
+// 末位精度，必须与 Python dict 插入序一致——字典序输出是 bug。
+// 合并序 = Python dict.update 语义：默认配置已有键原位，overlay
+// 新键按其文件序追加。
+func TestCrossSectionWeightPreservesYAMLOrder(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "custom.yaml")
+	// overlay 文件序刻意取非字典序（vision_needs 在 project_vision 前）
+	// 暴露排序 bug；默认配置的 needs_skills 在最前（dict.update 语义）。
+	yaml := `recipe:
+  section_weights:
+    skills: 0.3
+  cross_section_weights:
+    vision_needs: 0.1
+    project_vision: 0.25
+`
+	if err := os.WriteFile(path, []byte(yaml), 0o644); err != nil {
+		t.Fatalf("写入临时配置: %v", err)
+	}
+	cfg, err := Load(path, nil)
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+	got := cfg.Recipe().CrossSectionWeight
+	want := []string{"needs_skills", "vision_needs", "project_vision"}
+	if len(got) != len(want) {
+		t.Fatalf("cross 项数: got %d want %d（%+v）", len(got), len(want), got)
+	}
+	for i, k := range want {
+		if got[i].Key != k {
+			t.Errorf("cross[%d]: got %s want %s（文件序）", i, got[i].Key, k)
+		}
+	}
+}
+
+// TestCrossSectionWeightOverrideAppendsOrder override 追加的新键排在
+// 文件序之后（Python dict 赋值语义：已有键原位，新键追加）。
+func TestCrossSectionWeightOverrideAppendsOrder(t *testing.T) {
+	cfg, err := Load("", map[string]any{
+		"recipe.cross_section_weights.needs_skills": 0.45,
+	})
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+	got := cfg.Recipe().CrossSectionWeight
+	if len(got) != 1 || got[0].Key != "needs_skills" || got[0].Value != 0.45 {
+		t.Fatalf("override 后: got %+v", got)
+	}
+}
+
+// TestKeyOrder KeyOrder 捕获嵌套 mapping 的文件序；块标量体不干扰。
+func TestKeyOrder(t *testing.T) {
+	data := []byte(`recipe:
+  instruction: >
+    folded text mentioning cross_section_weights
+    and fake keys like needs_skills
+  cross_section_weights:
+    zeta_first: 1
+    alpha_second: 2
+`)
+	got := KeyOrder(data, "recipe", "cross_section_weights")
+	if len(got) != 2 || got[0] != "zeta_first" || got[1] != "alpha_second" {
+		t.Errorf("KeyOrder: got %v want [zeta_first alpha_second]", got)
+	}
+	if got := KeyOrder(data, "recipe"); len(got) != 2 || got[0] != "instruction" {
+		t.Errorf("KeyOrder(recipe): got %v", got)
+	}
+	if got := KeyOrder(data, "nonexistent"); got != nil {
+		t.Errorf("不存在的 path: got %v want nil", got)
+	}
+	if got := KeyOrder(data, "recipe", "instruction"); got != nil {
+		t.Errorf("块标量非 mapping: got %v want nil", got)
 	}
 }
 

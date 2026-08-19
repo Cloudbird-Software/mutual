@@ -30,6 +30,10 @@ var defaultYAML []byte
 // 两者结合 = 灵活加载 + 安全消费。
 type Config struct {
 	raw map[string]any
+	// crossOrder 是 recipe.cross_section_weights 的 YAML 文件序
+	// （qodo PR2 #6）：Go map 不保序，而 Python dict 按插入序迭代，
+	// 融合是浮点累加、顺序影响末位精度。由 Load 从各配置源捕获。
+	crossOrder []string
 }
 
 // Default 返回内置默认配置（config/default.yaml）。
@@ -38,26 +42,47 @@ func Default() (*Config, error) {
 	if err != nil {
 		return nil, fmt.Errorf("解析内置 default.yaml: %w", err)
 	}
-	return &Config{raw: raw}, nil
+	return &Config{
+		raw:        raw,
+		crossOrder: KeyOrder(defaultYAML, "recipe", "cross_section_weights"),
+	}, nil
 }
 
 // Load 加载配置：默认 → 文件/目录 overlay → 单值 override。
 //
+// 加载即校验（qodo PR2 #5）：结构错误（如 recipe.section_weights
+// 被覆盖为标量）在此处报描述性错误，而非读取点 panic。
 // configPath 为空串时只应用 overrides。
 func Load(configPath string, overrides map[string]any) (*Config, error) {
 	cfg, err := Default()
 	if err != nil {
 		return nil, err
 	}
+	crossOrder := cfg.crossOrder
 	if configPath != "" {
 		info, err := os.Stat(configPath)
 		if err != nil {
 			return nil, fmt.Errorf("配置路径不可访问: %w", err)
 		}
 		if info.IsDir() {
+			// 目录 overlay 中只有 recipe.{yaml,yml} 会触及 recipe 段
+			//（其文件体即 recipe 段内容，cross_section_weights 在顶层）。
+			for _, name := range []string{"recipe.yaml", "recipe.yml"} {
+				if data, err := os.ReadFile(filepath.Join(configPath, name)); err == nil {
+					crossOrder = mergeKeyOrder(crossOrder,
+						KeyOrder(data, "cross_section_weights"))
+					break
+				}
+			}
 			cfg.raw, err = applyDirOverlay(cfg.raw, configPath)
 		} else {
-			cfg.raw, err = applyFileOverlay(cfg.raw, configPath)
+			data, err := os.ReadFile(configPath)
+			if err != nil {
+				return nil, fmt.Errorf("配置文件读取失败: %w", err)
+			}
+			crossOrder = mergeKeyOrder(crossOrder,
+				KeyOrder(data, "recipe", "cross_section_weights"))
+			cfg.raw, err = applyFileOverlay(cfg.raw, data, configPath)
 		}
 		if err != nil {
 			return nil, err
@@ -65,18 +90,44 @@ func Load(configPath string, overrides map[string]any) (*Config, error) {
 	}
 	for k, v := range overrides {
 		SetDotted(cfg.raw, k, v)
+		// override 触及 cross_section_weights 的子键时并入键序
+		//（Python dict 赋值语义：已有键原位，新键追加）。
+		if strings.HasPrefix(k, "recipe.cross_section_weights.") {
+			last := k[strings.LastIndex(k, ".")+1:]
+			crossOrder = mergeKeyOrder(crossOrder, []string{last})
+		}
+	}
+	cfg.crossOrder = crossOrder
+	if err := cfg.Validate(); err != nil {
+		return nil, err
 	}
 	return cfg, nil
+}
+
+// mergeKeyOrder 合并键序：base 序在前，overlay 新键按其文件序追加
+// （Python dict.update 语义：已有键保持原位，新键追加）。
+func mergeKeyOrder(base, overlay []string) []string {
+	seen := make(map[string]bool, len(base)+len(overlay))
+	out := make([]string, 0, len(base)+len(overlay))
+	for _, k := range base {
+		if !seen[k] {
+			out = append(out, k)
+			seen[k] = true
+		}
+	}
+	for _, k := range overlay {
+		if !seen[k] {
+			out = append(out, k)
+			seen[k] = true
+		}
+	}
+	return out
 }
 
 // Raw 返回底层配置 map（只读约定：调用方不得修改）。
 func (c *Config) Raw() map[string]any { return c.raw }
 
-func applyFileOverlay(base map[string]any, path string) (map[string]any, error) {
-	data, err := os.ReadFile(path)
-	if err != nil {
-		return nil, fmt.Errorf("配置文件读取失败: %w", err)
-	}
+func applyFileOverlay(base map[string]any, data []byte, path string) (map[string]any, error) {
 	overlay, err := ParseYAML(data)
 	if err != nil {
 		return nil, fmt.Errorf("配置文件 %s: %w", path, err)
@@ -171,29 +222,101 @@ type RecipeView struct {
 }
 
 // Recipe 返回 recipe 段（相似度融合权重 + 打分指令）。
+//
+// 防御性读取（qodo PR2 #5）：section_weights / cross_section_weights
+// 非 mapping（null/list/标量）时视作缺省，不 panic——结构错误已在
+// Load 期由 Validate 拦截，此处兜底直接构造的 Config。
 func (c *Config) Recipe() RecipeView {
-	recipe, _ := c.raw["recipe"].(map[string]any)
+	recipe := mmap(c.raw["recipe"])
 	view := RecipeView{SectionWeights: map[string]float64{}}
-	if recipe == nil {
-		return view
-	}
 	view.Instruction, _ = recipe["instruction"].(string)
-	for k, v := range recipe["section_weights"].(map[string]any) {
+	for k, v := range mmap(recipe["section_weights"]) {
 		view.SectionWeights[k] = toFloat(v)
 	}
-	// cross_section_weights 保持文件序（WeightEntry 保序，engine 依赖）。
+	// cross_section_weights 保持 YAML 文件序（qodo PR2 #6）：融合是
+	// 浮点累加，term 顺序影响末位精度，必须与 Python 的 dict 插入序
+	// 一致。crossOrder 由 Load 从配置源捕获；无序信息时回退字典序
+	//（确定性兜底）。
 	if cross, ok := recipe["cross_section_weights"].(map[string]any); ok {
-		keys := make([]string, 0, len(cross))
-		for k := range cross {
-			keys = append(keys, k)
+		seen := map[string]bool{}
+		for _, k := range c.crossOrder {
+			if v, ok := cross[k]; ok {
+				view.CrossSectionWeight = append(view.CrossSectionWeight,
+					engine.WeightEntry{Key: k, Value: toFloat(v)})
+				seen[k] = true
+			}
 		}
-		sort.Strings(keys)
-		for _, k := range keys {
+		rest := make([]string, 0, len(cross))
+		for k := range cross {
+			if !seen[k] {
+				rest = append(rest, k)
+			}
+		}
+		sort.Strings(rest)
+		for _, k := range rest {
 			view.CrossSectionWeight = append(view.CrossSectionWeight,
 				engine.WeightEntry{Key: k, Value: toFloat(cross[k])})
 		}
 	}
 	return view
+}
+
+// Validate 校验合并后配置的结构约束，返回描述性错误（qodo PR2 #5：
+// 语法合法但类型错误的 YAML——如 section_weights: null / 列表 /
+// 标量——在加载期 fail loud，而非 pipeline 读取点 panic）。
+func (c *Config) Validate() error {
+	recipe, present := c.raw["recipe"]
+	if !present || recipe == nil {
+		return nil
+	}
+	m, ok := recipe.(map[string]any)
+	if !ok {
+		return fmt.Errorf("配置校验失败: recipe 必须是 mapping，当前为 %s", kindOf(recipe))
+	}
+	for _, field := range []string{"section_weights", "cross_section_weights"} {
+		v, present := m[field]
+		if !present || v == nil {
+			continue
+		}
+		weights, ok := v.(map[string]any)
+		if !ok {
+			return fmt.Errorf("配置校验失败: recipe.%s 必须是 mapping，当前为 %s", field, kindOf(v))
+		}
+		for k, w := range weights {
+			if !isNumeric(w) {
+				return fmt.Errorf("配置校验失败: recipe.%s.%s 必须是数值，当前为 %s", field, k, kindOf(w))
+			}
+		}
+	}
+	return nil
+}
+
+// kindOf 返回配置值的类型描述（校验错误信息用）。
+func kindOf(v any) string {
+	switch v.(type) {
+	case nil:
+		return "null"
+	case []any:
+		return "list"
+	case string:
+		return "string"
+	case bool:
+		return "bool"
+	case int, float64:
+		return "number"
+	default:
+		return fmt.Sprintf("%T", v)
+	}
+}
+
+// isNumeric 判定配置值是否为数值（int/float；字符串数字不算——
+// 权重写成带引号的字符串是配置错误，不应静默转换）。
+func isNumeric(v any) bool {
+	switch v.(type) {
+	case int, float64:
+		return true
+	}
+	return false
 }
 
 // RecipeConfig 直接返回 engine 的相似度配置（Instruction 独立于

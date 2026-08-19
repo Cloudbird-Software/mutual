@@ -64,19 +64,27 @@ Profile[]（自由文本画像）
 
 ### 3.1 离线通路（CI / golden test）
 
-`internal/signal` 提供 LLM/embedder 替身：FakeLLM 按 prompt 内容查表返回
-固定响应（spec/04-fixtures.md §7.1 契约），Surrogate 从画像文本计算确定性
-语义信号。CI 无需 API 凭据，全链路可复现。
+`internal/signal` 提供 LLM/embedder 替身：FakeLLM 的打分调用按 prompt 中
+的 cohort id 查表返回固定响应、其余调用返回固定话术 JSON（spec/04-fixtures.md
+§7.1 契约），Surrogate 从画像文本计算确定性语义信号。CI 无需 API 凭据，
+全链路可复现。
 
 ### 3.2 在线通路（生产）
 
 `internal/bamlllm.Client` 实现 `engine.LLMClient`，桥接到 BAML 类型化客户端：
 
 ```
-engine 阶段函数 --字符串 prompt--> bamlllm 路由（按 §7.1 标记约定）
-    --> 还原类型化输入 --> baml_client.ScorePairs / ExtractProfile / ...
+engine 阶段函数 --字符串 prompt + 调用上下文--> bamlllm 按阶段分发
+    （CompleteScore / CompleteExtract / CompleteHyde / CompleteIntroduce）
+    --> 按默认模板的结构标记还原类型化输入
+    --> baml_client.ScorePairs / ExtractProfile / ...
     --> 类型化结果序列化回 JSON --> engine 各解析器
 ```
+
+**为什么按调用上下文分发而非分析 prompt 内容**：prompt 里插值了用户
+画像文本，任何子串标记都可能被画像内容伪造/破坏（路由劫持）。阶段
+路由由 engine 的调用点决定，BAML 桥接只做参数还原。自定义模板必须
+保留结构标记（`config.ValidatePromptTemplate` 加载期校验，fail loud）。
 
 prompt 契约定义在 `baml_src/*.baml`（唯一事实来源），生成物 `baml_client/`
 提交入库——离线可构建，CI 不跑 codegen。变更流程：

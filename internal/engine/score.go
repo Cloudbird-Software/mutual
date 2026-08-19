@@ -105,7 +105,7 @@ func ScorePairs(
 			continue
 		}
 		prompt := buildScoringPrompt(batch, sectionsDict, instruction, promptTemplate)
-		raw, err := llm.Complete(prompt, budgets.Model)
+		raw, err := llm.CompleteScore(prompt, budgets.Model)
 		callsMade++
 		var parsed []*dirScore
 		if err == nil && raw != "" {

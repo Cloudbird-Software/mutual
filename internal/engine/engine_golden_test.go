@@ -120,14 +120,16 @@ var fakeScoreTable = map[string][2]float64{
 
 var fakeCohortIDs = []string{"alice", "bob", "carol", "david"}
 
-func (fakeLLM) Complete(prompt string, model string) (string, error) {
+// 按阶段类型化分发（§7.1 语义的 Go 落地：打分 → 查表，其余 → 固定话术）。
+func (fakeLLM) CompleteScore(prompt string, model string) (string, error) {
+	_ = model
 	var found []string
 	for _, id := range fakeCohortIDs {
 		if strings.Contains(prompt, id) {
 			found = append(found, id)
 		}
 	}
-	if strings.Contains(prompt, "a_to_b") && len(found) >= 2 {
+	if len(found) >= 2 {
 		if entry, ok := fakeScoreTable[found[0]+"__"+found[1]]; ok {
 			out, _ := json.Marshal(map[string]any{
 				"a_to_b": entry[0], "b_to_a": entry[1], "reasoning": "fake",
@@ -135,9 +137,24 @@ func (fakeLLM) Complete(prompt string, model string) (string, error) {
 			return string(out), nil
 		}
 	}
-	if strings.Contains(prompt, "a_to_b") {
-		return `{"a_to_b": 0.5, "b_to_a": 0.5, "reasoning": "fake"}`, nil
-	}
+	return `{"a_to_b": 0.5, "b_to_a": 0.5, "reasoning": "fake"}`, nil
+}
+
+func (fakeLLM) CompleteExtract(prompt string, model string) (string, error) {
+	_ = prompt
+	_ = model
+	return `{"intro": "Fake intro.", "starter_topics": "Fake topic."}`, nil
+}
+
+func (fakeLLM) CompleteHyde(prompt string, model string) (string, error) {
+	_ = prompt
+	_ = model
+	return `{"intro": "Fake intro.", "starter_topics": "Fake topic."}`, nil
+}
+
+func (fakeLLM) CompleteIntroduce(prompt string, model string) (string, error) {
+	_ = prompt
+	_ = model
 	return `{"intro": "Fake intro.", "starter_topics": "Fake topic."}`, nil
 }
 

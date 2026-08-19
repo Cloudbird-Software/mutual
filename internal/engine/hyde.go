@@ -45,7 +45,7 @@ func GenerateHyde(
 				"section_content": content,
 				"n_descriptors":   itoa(nDescriptors),
 			})
-			response, err := llm.Complete(prompt, model)
+			response, err := llm.CompleteHyde(prompt, model)
 			if err != nil {
 				continue
 			}

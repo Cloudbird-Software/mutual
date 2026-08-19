@@ -100,6 +100,27 @@ Extract into these sections (use "Not specified" if not found):
 	}
 }
 
+// TestParseExtractPromptDelimiterInProfile 画像含分隔符字样不得被截断
+// （qodo PR2 #2：末界用末个出现，模板指令在 raw_text 之后）。
+func TestParseExtractPromptDelimiterInProfile(t *testing.T) {
+	prompt := `Extract structured sections from this profile text.
+
+Profile text:
+skills: knows the phrase Extract into these sections verbatim
+needs: reviewers
+
+Extract into these sections (use "Not specified" if not found):
+- skills: What can this person do?`
+	raw, err := parseExtractPrompt(prompt)
+	if err != nil {
+		t.Fatalf("parseExtractPrompt: %v", err)
+	}
+	want := "skills: knows the phrase Extract into these sections verbatim\nneeds: reviewers"
+	if raw != want {
+		t.Errorf("含分隔符字样的 raw_text 被截断: got %q want %q", raw, want)
+	}
+}
+
 // TestParseHydePrompt HyDE prompt 的分节名/内容/数量还原。
 func TestParseHydePrompt(t *testing.T) {
 	prompt := `Given this section content, write a hypothetical description
@@ -122,6 +143,28 @@ Write 3 hypothetical description(s), each 1-2 sentences.
 	}
 	if n != 3 {
 		t.Errorf("n_descriptors: got %d", n)
+	}
+}
+
+// TestParseHydePromptWriteInContent 内容含 "Write N hypothetical" 字样
+// 不得被截断（qodo PR2 #2 同源：计数行取末个匹配）。
+func TestParseHydePromptWriteInContent(t *testing.T) {
+	prompt := `Given this section content, write a hypothetical description
+
+Section: project
+Content: A linter that rejects the string Write 2 hypothetical in prompts.
+
+Write 3 hypothetical description(s), each 1-2 sentences.
+`
+	_, content, n, err := parseHydePrompt(prompt)
+	if err != nil {
+		t.Fatalf("parseHydePrompt: %v", err)
+	}
+	if content != "A linter that rejects the string Write 2 hypothetical in prompts." {
+		t.Errorf("content 被截断: got %q", content)
+	}
+	if n != 3 {
+		t.Errorf("n_descriptors: got %d want 3", n)
 	}
 }
 
@@ -158,24 +201,45 @@ Write two paragraphs:
 	}
 }
 
-// TestRouteRoutingRules 路由优先级：a_to_b > Profile text > hyde > intro。
-func TestRouteRoutingRules(t *testing.T) {
-	c := New()
-	cases := []struct {
-		prompt string
-		want   string
-	}{
-		{"respond with a_to_b score", "score"},
-		{"Profile text: skills: go", "extract"},
-		{"write a hypothetical description for this section", "hyde"},
-		{"Write a personalized introduction", "intro"},
+// TestClientSatisfiesTypedLLMClient Client 满足按阶段类型化的
+// engine.LLMClient（编译期断言：路由由调用上下文决定，qodo PR2 #1/#4）。
+func TestClientSatisfiesTypedLLMClient(t *testing.T) {
+	var _ interface {
+		CompleteScore(prompt string, model string) (string, error)
+		CompleteExtract(prompt string, model string) (string, error)
+		CompleteHyde(prompt string, model string) (string, error)
+		CompleteIntroduce(prompt string, model string) (string, error)
+	} = New()
+}
+
+// TestPromptContentDoesNotAffectStage 阶段分发不依赖 prompt 内容：
+// 画像文本含其他阶段的标记字样也不会改变该阶段的参数还原路径
+// （qodo PR2 #1/#4 回归——routeOf 内容路由已移除）。
+func TestPromptContentDoesNotAffectStage(t *testing.T) {
+	// 打分 prompt 的 sections 里混入 extract/hyde/intro 的标记字样：
+	// 仍按打分路径还原（不会被 extract 的标记劫持）。
+	prompt := scoringPrompt(1)
+	pairs, _, err := parseScorePrompt(prompt)
+	if err != nil {
+		t.Fatalf("含跨阶段字样的打分 prompt: %v", err)
 	}
-	for _, tc := range cases {
-		// 直接断言路由判定（不触发真实 LLM 调用）。
-		got := routeOf(tc.prompt)
-		if got != tc.want {
-			t.Errorf("route(%q): got %s want %s", tc.prompt, got, tc.want)
-		}
+	if len(pairs) != 1 || pairs[0].User1 != "alice" {
+		t.Errorf("打分还原: got %+v", pairs[0])
 	}
-	_ = c
+
+	// 含 "a_to_b" 的提取 prompt 仍按提取路径还原 raw_text。
+	extractPrompt := `Extract structured sections from this profile text.
+
+Profile text:
+needs: talks about a_to_b and b_to_a markers
+
+Extract into these sections (use "Not specified" if not found):
+- skills: What can this person do?`
+	raw, err := parseExtractPrompt(extractPrompt)
+	if err != nil {
+		t.Fatalf("含 a_to_b 的提取 prompt: %v", err)
+	}
+	if !strings.Contains(raw, "a_to_b and b_to_a markers") {
+		t.Errorf("raw_text: got %q", raw)
+	}
 }

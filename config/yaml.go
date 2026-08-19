@@ -311,3 +311,56 @@ func unquote(s string) string {
 	}
 	return s
 }
+
+// KeyOrder 返回 YAML 源中 path 处 mapping 的键序（文件序）。
+//
+// 为什么需要：ParseYAML 产出 map[string]any（Go map 不保序），而
+// Python dict 按 YAML 插入序迭代——cross_section_weights 这类**顺序
+// 敏感**配置（浮点累加顺序影响末位精度，qodo PR2 #6）需单独捕获
+// 文件序。path 不存在、值为 null 或非 mapping → nil。
+//
+// 块标量体（如 recipe.instruction: > 的多行正文）缩进更深，扫描时
+// 自然跳过，不会被误认作 mapping 键。
+func KeyOrder(data []byte, path ...string) []string {
+	lines, err := scanLines(string(data))
+	if err != nil {
+		return nil
+	}
+	start, indent := 0, 0
+	for _, key := range path {
+		found, childIndent := -1, -1
+		for i := start; i < len(lines); i++ {
+			ln := lines[i]
+			if ln.indent < indent {
+				break // 离开当前块：目标键不在此层
+			}
+			if ln.indent > indent {
+				continue // 块标量体 / 更深层：跳过
+			}
+			if k, rest, ok := splitKeyValue(ln.text); ok && unquote(k) == key && rest == "" {
+				if i+1 < len(lines) && lines[i+1].indent > indent {
+					found, childIndent = i+1, lines[i+1].indent
+				}
+				break
+			}
+		}
+		if found == -1 {
+			return nil
+		}
+		start, indent = found, childIndent
+	}
+	var keys []string
+	for i := start; i < len(lines); i++ {
+		ln := lines[i]
+		if ln.indent < indent {
+			break
+		}
+		if ln.indent > indent {
+			continue
+		}
+		if k, _, ok := splitKeyValue(ln.text); ok {
+			keys = append(keys, unquote(k))
+		}
+	}
+	return keys
+}

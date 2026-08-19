@@ -51,7 +51,7 @@ func ExtractSections(
 func extractOne(profile domain.Profile, template, model string, llm LLMClient) map[string]string {
 	rawText := formatProfileRawText(profile)
 	prompt := pyFormatMap(template, map[string]string{"raw_text": rawText})
-	response, err := llm.Complete(prompt, model)
+	response, err := llm.CompleteExtract(prompt, model)
 	if err != nil {
 		return nil
 	}

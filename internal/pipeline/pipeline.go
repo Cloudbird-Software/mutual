@@ -179,7 +179,10 @@ func RunQueryMatch(in QueryMatchInput, cfg *config.Config, deps Deps) (*domain.M
 	}
 	queryProfile := domain.NewProfile(domain.UserID(queryID), sections, nil)
 
-	templates := cfg.ResolvePromptTemplates(nil)
+	templates, err := cfg.ResolvePromptTemplates(nil)
+	if err != nil {
+		return nil, err
+	}
 	models := cfg.Models()
 	extracted, _ := engine.ExtractSections(
 		[]domain.Profile{queryProfile},
@@ -312,7 +315,10 @@ func runExtractHydeEmbed(
 	cfg *config.Config,
 	deps Deps,
 ) (*domain.EmbeddingsBundle, []domain.ExtractedSections, error) {
-	templates := cfg.ResolvePromptTemplates(nil)
+	templates, err := cfg.ResolvePromptTemplates(nil)
+	if err != nil {
+		return nil, nil, err
+	}
 	models := cfg.Models()
 
 	extracted, failedIDs := engine.ExtractSections(
@@ -436,7 +442,10 @@ func runMatchFlow(in matchFlowInput) (*domain.MatchResult, error) {
 func runMatchFlowWithMeta(in matchFlowInput) (*domain.MatchResult, map[string]any, error) {
 	cfg := in.cfg
 	models := cfg.Models()
-	templates := cfg.ResolvePromptTemplates(nil)
+	templates, err := cfg.ResolvePromptTemplates(nil)
+	if err != nil {
+		return nil, nil, err
+	}
 	recipe := cfg.Recipe()
 
 	similarity := engine.ComputeSimilarity(in.sourceBundle, in.targetBundle, cfg.RecipeConfig())
