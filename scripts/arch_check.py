@@ -22,7 +22,14 @@ ROOT = Path(__file__).resolve().parents[1] / "src" / "mutual"
 
 
 def internal_imports(tree: ast.AST) -> set[str]:
-    """收集 `from .x import ...` / `from mutual.x import ...` 形式的内部依赖。"""
+    """收集全部内部依赖形式（qodo #7：补上普通 import 语句）。
+
+    覆盖四种写法：
+    - ``from .x import ...`` / ``from . import x``
+    - ``from mutual.x import ...`` / ``from mutual import x``
+    - ``import mutual.x`` / ``import mutual.x as y``（此前漏检）
+    - ``import mutual``
+    """
     found: set[str] = set()
     for node in ast.walk(tree):
         if isinstance(node, ast.ImportFrom):
@@ -38,6 +45,13 @@ def internal_imports(tree: ast.AST) -> set[str]:
                 else:  # from mutual import x
                     for alias in node.names:
                         found.add(alias.name.split(".")[0])
+        elif isinstance(node, ast.Import):
+            for alias in node.names:
+                name = alias.name
+                if name == "mutual":
+                    continue  # import mutual 本身未指名子模块
+                if name.startswith("mutual."):
+                    found.add(name.split(".")[1])  # import mutual.cli → cli
     return {m for m in found if m}
 
 

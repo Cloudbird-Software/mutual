@@ -44,11 +44,17 @@ def _envy_count(
     pref: np.ndarray,  # [M, N] 行=envier 侧，列=被匹配侧
     match_prob: np.ndarray,  # [M, N]
 ) -> int:
-    """统计一侧的 envy 计数。
+    """统计一侧的 envy 计数（own-best 语义，qodo #5 措辞澄清）。
 
     对每个实体 i，取它匹配到的对方集合 J_i；对每个其他实体 i'，若存在
-    i' 匹配到的对方 j'，使得 pref[i, j'] > 任一 pref[i, j]（j ∈ J_i），
-    则 i 嫉妒 i'，计数 +1。
+    i' 匹配到的对方 j'，使得 ``pref[i, j'] > max(pref[i, j], j ∈ J_i)``
+    （对方拿到的某个选项**严格优于** i 自己**最优**的匹配），则 i 嫉妒
+    i'，计数 +1。
+
+    own-best 语义是**显式决定**：与 :func:`mutual.match.check_envy` 保持
+    逐位一致（该模块 docstring 同步声明），envy 门禁数值按此口径标定
+    （config 门禁 ``total_envy_max=2``）。改语义 = 改 oracle，须走 spec
+    变更（spec/05-boundaries.md 前言），不得只改实现。
     """
     n_left = match_prob.shape[0]
     count = 0
@@ -72,7 +78,17 @@ def evaluate(
     pref_matrix: PrefMatrix | None = None,
     match_prob: np.ndarray | None = None,
 ) -> EvaluationReport:
-    """计算 HR@1/3/5、NDCG@5（推荐质量）+ envy 计数（互惠公平）。"""
+    """计算 HR@1/3/5、NDCG@5（推荐质量）+ envy 计数（互惠公平）。
+
+    Raises:
+        ValueError: ``predictions`` 与 ``ground_truth`` 长度不一致（qodo #6：
+            非严格 zip 静默截断 + 按 predictions 数做分母会产生错误指标）。
+    """
+    if len(predictions) != len(ground_truth):
+        raise ValueError(
+            f"predictions({len(predictions)}) 与 ground_truth({len(ground_truth)}) "
+            "长度不一致：评测输入畸形，拒绝计算（qodo #6）"
+        )
     total = len(predictions)
 
     if total == 0:

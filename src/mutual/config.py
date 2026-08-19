@@ -17,24 +17,42 @@ def load_config(
     config_dir: Optional[str] = None,
     overrides: Optional[Dict[str, Any]] = None,
 ) -> Dict[str, Any]:
-    """加载配置：默认 → 目录 overlay → 单值 override。
+    """加载配置：默认 → 文件/目录 overlay → 单值 override。
 
     Args:
-        config_dir: overlay 目录路径。该目录下的 YAML 文件按文件名
-                    匹配默认配置的顶层 key（如 blending.yaml 覆盖 blending）。
+        config_dir: 配置路径。**文件路径**（qodo #4）：作为完整配置 overlay
+                    深合并到默认值之上（``evaluate --config custom.yaml`` 的
+                    自定义门禁由此生效）；**目录路径**：目录下的 YAML 文件
+                    按文件名匹配默认配置的顶层 key（如 blending.yaml 覆盖
+                    blending）。
         overrides: 点号路径的 override，如 {"blending.embed_weight": 0.4}。
     """
     with open(_DEFAULT_CONFIG_PATH, "r", encoding="utf-8") as f:
         config = yaml.safe_load(f)
 
     if config_dir:
-        config = _apply_dir_overlay(config, Path(config_dir))
+        path = Path(config_dir)
+        if path.is_file():
+            config = _apply_file_overlay(config, path)
+        else:
+            config = _apply_dir_overlay(config, path)
 
     if overrides:
         for dotted_key, value in overrides.items():
             _set_dotted(config, dotted_key, value)
 
     return config
+
+
+def _apply_file_overlay(config: Dict, file_path: Path) -> Dict:
+    """单文件 overlay（qodo #4）：整份 YAML 深合并到默认配置之上。"""
+    if not file_path.exists():
+        raise FileNotFoundError(f"配置文件不存在: {file_path}")
+    with open(file_path, "r", encoding="utf-8") as f:
+        overlay = yaml.safe_load(f) or {}
+    if not isinstance(overlay, dict):
+        raise ValueError(f"配置文件顶层必须是 mapping: {file_path}")
+    return _deep_merge(config, overlay)
 
 
 def _apply_dir_overlay(config: Dict, dir_path: Path) -> Dict:

@@ -98,8 +98,12 @@ def run_full_match(
             sections=extracted, config=config, llm_wrapper=llm_wrapper
         )
         existing = store.get_embeddings() if store is not None else kwargs.get("existing_bundle")
+        # qodo #8：embed 阶段经 config["llm_wrapper"] 解析 embedder（A-2），
+        # 此前 wrapper 在 runner 手里却没传下去 → 正常调用路径 raise。
+        embed_config = dict(config)
+        embed_config["llm_wrapper"] = llm_wrapper
         bundle = stages.get_stage("embed").run(
-            sections=extracted, hyde=hyde, config=config, existing=existing
+            sections=extracted, hyde=hyde, config=embed_config, existing=existing
         )
         if store is not None:
             store.put_embeddings(bundle)
@@ -153,8 +157,11 @@ def run_query_match(
     )
     extracted, _failed_ids = _run_extract_stage([query_profile], config, llm_wrapper)
     hyde = stages.get_stage("hyde").run(sections=extracted, config=config, llm_wrapper=llm_wrapper)
+    # qodo #8：同 run_full_match——把 wrapper 传给 embed 阶段解析 embedder。
+    embed_config = dict(config)
+    embed_config["llm_wrapper"] = llm_wrapper
     query_bundle = stages.get_stage("embed").run(
-        sections=extracted, hyde=hyde, config=config, existing=None
+        sections=extracted, hyde=hyde, config=embed_config, existing=None
     )
 
     match_result, _meta = _run_match_flow(

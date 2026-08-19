@@ -85,6 +85,30 @@ class TestSections:
         got = store.get_sections(["alice", "ghost"])
         assert set(got) == {"alice"}
 
+    def test_put_rejects_path_traversal_ids(self, store):
+        """qodo #1：``../`` / 绝对路径 / 分隔符 ID 拒绝持久化（fail-loud）。"""
+        evil_ids = ["../escape", "/etc/passwd", "a/b", "a\\b", "..", "."]
+        for eid in evil_ids:
+            with pytest.raises(ValueError, match="路径穿越守卫"):
+                store.put_sections([ExtractedSections(id=eid, sections={"skills": "x"})])
+
+    def test_put_rejects_dot_prefixed_ids(self, store):
+        """隐藏文件式 ID（``.env``）同样拒绝。"""
+        with pytest.raises(ValueError, match="路径穿越守卫"):
+            store.put_sections([ExtractedSections(id=".env", sections={"skills": "x"})])
+
+    def test_get_skips_unsafe_ids_without_io(self, store, tmp_path):
+        """qodo #1：读侧不安全 ID 静默跳过，绝不拼入路径（不抛、不读盘外）。"""
+        got = store.get_sections(["../../etc/passwd", "a/b"])
+        assert got == {}
+        assert not (tmp_path / "root" / "processed" / "sections" / "passwd.json").exists()
+
+    def test_put_accepts_safe_id_charset(self, store):
+        """合法 ID（字母数字 + ._-）不受影响。"""
+        ok = ExtractedSections(id="user_01.founder-B", sections={"skills": "art"})
+        store.put_sections([ok])
+        assert set(store.get_sections(["user_01.founder-B"])) == {"user_01.founder-B"}
+
     def test_empty_store_returns_empty_dict(self, store):
         assert store.get_sections() == {}
 

@@ -448,11 +448,13 @@ def _parse_scoring_response(text: str, expected_pairs: int) -> List[Optional[Tup
     单对 batch 接受单 JSON 对象（或数组首元素）；多对 batch 只接受 JSON 数组，
     单对象视为格式不符（整批未打分，保留 embed 权重，§3）。
     每个对象必须同时含合法的 ``a_to_b`` 与 ``b_to_a``（0.0-1.0，截断处理）。
+
+    位置对齐（qodo #3）：非对象元素**保留为 ``None`` 槽位**，不压缩列表——
+    否则畸形元素之后的合法分数会左移，被记到错误的 pair 头上。
     """
     obj = _loads_lenient(text)
-    items: List[Dict[str, Any]]
     if isinstance(obj, list):
-        items = [o for o in obj if isinstance(o, dict)]
+        items: List[Optional[Dict[str, Any]]] = [o if isinstance(o, dict) else None for o in obj]
     elif isinstance(obj, dict):
         if expected_pairs > 1:
             return []
@@ -464,6 +466,9 @@ def _parse_scoring_response(text: str, expected_pairs: int) -> List[Optional[Tup
 
     out: List[Optional[Tuple[float, float]]] = []
     for d in items:
+        if d is None:
+            out.append(None)
+            continue
         a = _clamp01(d.get("a_to_b"))
         b = _clamp01(d.get("b_to_a"))
         out.append((a, b) if (a is not None and b is not None) else None)

@@ -20,6 +20,7 @@ from __future__ import annotations
 
 import calendar
 import json
+import re
 from abc import ABC, abstractmethod
 from datetime import datetime, timezone
 from pathlib import Path
@@ -32,6 +33,23 @@ from .schemas import Edge, EmbeddingsBundle, ExtractedSections
 _BUNDLE_FILENAME = "bundle.npz"
 _SECTIONS_SUBDIR = "sections"
 _FAILED_MARKER = "Not specified"
+
+# 安全 ID 白名单（qodo #1 路径穿越修复）：profile/section ID 直接拼进文件路径，
+# 必须限制为"单段、无分隔符、非点开头"的标识符，杜绝 ``../`` / 绝对路径逃逸。
+_SAFE_ID_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]*$")
+
+
+def _safe_filename(user_id: str) -> Optional[str]:
+    """校验 ID 可安全用作文件名；不安全返回 ``None``。
+
+    规则：非空、仅限字母数字与 ``._-``、不得以点开头（``..`` / 隐藏文件）、
+    不得含路径分隔符（正则已排除 ``/`` 与 ``\\``）。
+    """
+    if not isinstance(user_id, str) or not _SAFE_ID_RE.match(user_id):
+        return None
+    if ".." in user_id:  # 双保险：正则虽允许 ``a..b``，语义上排除连续点
+        return None
+    return user_id
 
 
 class Store(ABC):
@@ -135,7 +153,12 @@ class FileStore(Store):
         if user_ids is None:
             files = sorted(sections_dir.glob("*.json"))
         else:
-            files = [sections_dir / f"{uid}.json" for uid in user_ids]
+            # 路径穿越守卫（qodo #1）：不安全 ID 跳过，绝不拼入路径。
+            files = [
+                sections_dir / f"{uid}.json"
+                for uid in user_ids
+                if _safe_filename(uid) is not None
+            ]
         result: Dict[str, ExtractedSections] = {}
         for path in files:
             if not path.exists():
@@ -154,6 +177,13 @@ class FileStore(Store):
         for item in extracted:
             if _is_failed_extraction(item):
                 continue
+            # 路径穿越守卫（qodo #1）：写侧 fail-loud——不安全 ID 直接拒绝，
+            # 不允许静默改写 sections 目录之外的文件。
+            if _safe_filename(item.id) is None:
+                raise ValueError(
+                    f"拒绝持久化不安全的 profile id {item.id!r}："
+                    "ID 只允许字母数字与 ._- 且不得以点开头（路径穿越守卫）"
+                )
             path = sections_dir / f"{item.id}.json"
             with open(path, "w", encoding="utf-8") as f:
                 json.dump(item.to_dict(), f, ensure_ascii=False)

@@ -132,23 +132,31 @@ def run_bench(
     market = generate_market(num_left, num_right, seed)
     truth = golden_truth(market)
 
-    _edges, match_prob, _envy_report = solve_match(
+    edges, match_prob, _envy_report = solve_match(
         market,
         matching_config={"b_max": b_max, "pool_b_max": pool_b_max},
         blending_config={"embed_weight": 0.5, "llm_weight": 0.5},
     )
 
-    # 推荐列表 = 每左节点偏好降序 top-5；黄金对应落在首位（互惠最强）。
+    # 推荐列表 = **求解器实际输出**（qodo #2）：每个左节点的匹配边按
+    # final_weight 降序（与 run_scenario 同构），黄金对应排首位。
+    # 求解器退化（丢边/错边）会直接压低 HR/NDCG——CI oracle 不再被
+    # 偏好矩阵重排"美化"。
+    by_left: Dict[str, List[tuple[float, str]]] = {lid: [] for lid in market.left_ids}
+    for e in edges:
+        if e.user1 in by_left:
+            by_left[e.user1].append((e.final_weight, e.user2))
+        elif e.user2 in by_left:
+            by_left[e.user2].append((e.final_weight, e.user1))
     top_k = 5
-    pref = market.pref_left_to_right
     predictions: List[List[str]] = []
     ground_truth: List[str] = []
 
-    for i, lid in enumerate(market.left_ids):
+    for lid in market.left_ids:
         if lid not in truth:
             continue  # 无真值：不算作评测场景
-        order = np.argsort(-pref[i])
-        predictions.append([market.right_ids[j] for j in order.tolist()][:top_k])
+        ranked = [pid for _w, pid in sorted(by_left[lid], reverse=True)]
+        predictions.append(ranked[:top_k])
         ground_truth.append(truth[lid])
 
     report = evaluate(predictions, ground_truth, market, match_prob)

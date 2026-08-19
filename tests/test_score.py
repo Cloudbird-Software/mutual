@@ -155,6 +155,29 @@ class TestBidirectionalScoring:
         assert scores["alice__bob"].llm_score_b_to_a == pytest.approx(0.2)
         assert scores["carol__david"].llm_score_a_to_b == pytest.approx(0.3)
 
+    def test_malformed_entry_keeps_positional_slot(self, config, cohort_sections):
+        """qodo #3：数组中混入非对象元素 → 该槽位未打分，后续合法分数不左移。"""
+
+        def fake_llm_mixed(messages, **kwargs):
+            # 第 2 个元素是畸形字符串（非对象）：第 3 个合法分数必须仍归 carol__david。
+            return '[{"a_to_b": 0.1, "b_to_a": 0.2}, "garbage", {"a_to_b": 0.7, "b_to_a": 0.8}]'
+
+        pairs = [_pair("alice", "bob"), _pair("carol", "david")]
+        unscored = []
+        scores = _score(
+            pairs,
+            fake_llm_mixed,
+            config,
+            cohort_sections,
+            unscored,
+            **{"budgets.n_profiles_to_score_together": 2},
+        )
+        # alice__bob 是 batch[0] → 正常拿到 0.1/0.2；
+        # batch[1]（carol__david）落在畸形槽位 → 未打分（None），不与后续分数错位。
+        assert scores["alice__bob"].llm_score_a_to_b == pytest.approx(0.1)
+        assert scores["carol__david"].llm_score_a_to_b is None
+        assert {p.pair_id for p in unscored} == {"carol__david"}
+
 
 class TestUnscoredOut:
     def test_all_pairs_kept_in_result(self, fake_llm, config, cohort_sections):
