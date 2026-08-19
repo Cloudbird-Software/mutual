@@ -168,7 +168,10 @@ func seedFromHash(hash string) uint32 {
 	if len(hash) > digits {
 		hash = hash[len(hash)-digits:]
 	}
-	v, err := strconv.ParseUint(hash, 16, 64)
+	// bitSize=32：解析结果 ≤ math.MaxUint32，转 uint32 无截断
+	// （CodeQL go/incorrect-integer-conversion：64 位解析后截断有
+	// 溢出隐患；8 位 hex 上限恰为 0xFFFFFFFF，32 位解析等价且无损）。
+	v, err := strconv.ParseUint(hash, 16, 32)
 	if err != nil {
 		return 0
 	}

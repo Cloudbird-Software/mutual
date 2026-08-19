@@ -63,7 +63,7 @@ golden 对拍  engine / pipeline / bench / domain / rng / num
 
 ```bash
 make go-test          # 全部测试
-make go-check         # vet + archlint + test + evaluate 门禁
+make check         # vet + archlint + test + evaluate 门禁
 ```
 
 golden 对拍失败时的排查顺序：
@@ -123,4 +123,4 @@ rounding）、`HashText`（md5 hex）、`PyReprFloat`——所有与 golden JSON
 - 不要在 engine 包里 import store/bench/pipeline（archlint 拦截）。
 - 不要绕过 `domain` 类型直接传 string（弱化类型 = 提高 AI 误读率）。
 - 不要捕获 golden 之外的"新参考值"（多真相源 = 对拍体系崩溃）。
-- 不要在 push 前 skip 测试——`make go-check` 是 PR 的最低门槛。
+- 不要在 push 前 skip 测试——`make check` 是 PR 的最低门槛。

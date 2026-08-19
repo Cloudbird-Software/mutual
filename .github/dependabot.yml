@@ -7,7 +7,8 @@ updates:
       actions:
         patterns: ["*"]
         cooldown-days: 7
-  - package-ecosystem: pip
+  # PR3 收敛 Go-only（ADR-0027）：pip 面随 Python 基线移除，换 gomod。
+  - package-ecosystem: gomod
     directory: "/"
     schedule: { interval: weekly }
     open-pull-requests-limit: 5
@@ -16,7 +17,3 @@ updates:
         patterns: ["*"]
         update-types: ["minor", "patch"]
         cooldown-days: 7
-    ignore:
-      # numpy 2.x 大版本升级涉及 API 兼容（golden fixtures 数值路径），留人审。
-      - dependency-name: numpy
-        update-types: ["version-update:semver-major"]

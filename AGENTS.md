@@ -2,8 +2,8 @@
 
 ## 命令
 
-- Go 面（主实现）：`make go-check` 提交前必跑（vet+archlint+test+evaluate 门禁）
-- Python 面（过渡期基线）：`make setup` 安装 / `make check`（lint+arch+test）
+- `make check` 提交前必跑（vet+archlint+test+evaluate 门禁）；`make setup` = go mod download
+- BAML prompt 契约变更：`make baml-generate` 重生成客户端 + 同步 `golden/baml/` 快照
 - 导航：[docs/AI-GUIDE.md](docs/AI-GUIDE.md)（改哪/怎么改/铁律）
 
 ## 硬规则（违反 = PR 打回）

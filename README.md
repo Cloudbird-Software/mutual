@@ -46,7 +46,7 @@ Mutual 是一个 **LLM 驱动的双向互惠推荐引擎**。核心范式：**sp
 
 ```bash
 # Go 面（主实现）：测试 + 依赖边界 + 评测门禁，全离线，无需 LLM 凭据
-make go-check
+make check
 
 # 只跑评测门禁（HR@3≥0.6 / NDCG@5≥0.4 / total_envy≤2）
 go run ./cmd/mutual evaluate --fail-on-gate
@@ -150,7 +150,7 @@ Mutual 的 spec 由四件套组成，它们共同构成项目的唯一真相源�
 1. 先读 spec（`spec/00-overview.md` + 目标 stage 的 spec）。
 2. 按 [docs/AI-GUIDE.md §1](docs/AI-GUIDE.md) 定位唯一入口文件。
 3. 实现 / 修改（保持纯变换与类型纪律）。
-4. `make go-check` 全绿后提交 PR。
+4. `make check` 全绿后提交 PR。
 5. golden 对拍失败时先排查确定性（map 遍历序 / RNG 消费顺序），再怀疑语义分歧。
 
 完整流程、PR 规则与 review checklist 见 [CONTRIBUTING.md](CONTRIBUTING.md)。

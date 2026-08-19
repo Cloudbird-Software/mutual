@@ -21,42 +21,13 @@ jobs:
     # push 面依赖审计（ADR-0021，红队 #11-C）：dependency-review 只支持 PR 事件（比对
     # base↔head），直推 main 时 deps job 被 skip 而 gate 判绿——push 面零校验。
     # 直推本应只有破玻璃（§8 后验），但"跳过=通过"的 gate 语义是声明性漏洞：
-    # push 用 lockfile 审计兜底（pip-audit 只读 registry 元数据，无新 action 依赖）。
+    # push 用 govulncheck 兜底（可达性分析 + OSV 元数据，PR3 收敛 Go 面后
+    # 替换原 pip-audit/uv.lock 路径）。govulncheck 二进制版本钉 @v1.1.4。
     if: github.event_name == 'push'
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
-        with:
-          python-version: "3.12"
-      - uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
-        with:
-          version: "0.12.5"
-      - name: 核心锁面审计（uv.lock，零容忍）
-        run: |
-          uv lock --check
-          uv export --all-extras --format requirements-txt --output-file /tmp/req.txt --no-hashes
-          pipx install pip-audit
-          pip-audit --requirement /tmp/req.txt --skip-editable
-
-  check:
-    uses: Cloudbird-Software/CI-Workflows/.github/workflows/check.yml@9c20d43d60e9f9d1438f171aeee8e4dbdf02c08b # v1.3.1
-    with:
-      runtime: python
-      python-version: "3.12"
-
-  # Go 面（ADR-0027：Go+BAML 重写，双栈过渡期）。golden 差分对拍 +
-  # archlint 分层门禁 + 离线评测门禁，全部无网络凭据依赖。
-  # 不走 CI-Workflows check.yml：其 make setup/check 契约绑定 Python 面
-  #（uv sync），PR3 移除 Python 面后收敛回 runtime: go 的复用工作流。
-  go:
     permissions:
       contents: read
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -65,8 +36,20 @@ jobs:
         with:
           go-version: "1.24"
           cache: false
-      - name: go-check（vet + archlint + test + evaluate 门禁）
-        run: make go-check
+      - name: Go 漏洞审计（go.sum 全量 + 可达性分析，零容忍）
+        run: |
+          go mod download
+          go install golang.org/x/vuln/cmd/govulncheck@v1.1.4
+          govulncheck ./...
+
+  # PR3 收敛 Go-only（ADR-0027）：Python 面已移除，check 回到复用工作流
+  # 的 runtime: go（make setup=go mod download / make check=vet+archlint+
+  # test+evaluate 门禁）。golden 差分对拍随 go test 全量执行。
+  check:
+    uses: Cloudbird-Software/CI-Workflows/.github/workflows/check.yml@9c20d43d60e9f9d1438f171aeee8e4dbdf02c08b # v1.3.1
+    with:
+      runtime: go
+      go-version: "1.24"
 
   deps:
     if: github.event_name == 'pull_request'
@@ -134,7 +117,7 @@ jobs:
     # 不访问仓库内容与 GitHub API：显式零权限（最小权限原则，CodeRabbit）。
     permissions: {}
     if: always()
-    needs: [hygiene, check, go, deps, deps-audit, adr-required]
+    needs: [hygiene, check, deps, deps-audit, adr-required]
     runs-on: ubuntu-latest
     steps:
       - name: All required jobs green?
