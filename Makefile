@@ -1,4 +1,4 @@
-.PHONY: setup fmt lint arch test build check
+.PHONY: setup fmt lint arch test build check go-fmt go-vet go-lint go-arch go-test go-build go-evaluate go-check
 
 setup:  ; uv sync --extra dev
 fmt:    ; uv run ruff format src tests scripts && uv run ruff check --fix src tests scripts
@@ -9,3 +9,18 @@ arch:   ; uv run python scripts/arch_check.py
 test:   ; uv run pytest tests/ -m "not llm" --tb=short && uv run python -m mutual.cli evaluate --config config/default.yaml --fail-on-gate
 build:  ; uv build
 check:  lint arch test
+
+# ---------------------------------------------------------------------------
+# Go 面（ADR-0027：Go+BAML 重写）。双栈过渡期与 Python 面并存，
+# PR3 移除 Python 面后本节成为唯一构建面。
+# ---------------------------------------------------------------------------
+
+go-fmt:  ; gofmt -l -w cmd internal config
+go-vet:  ; go vet ./...
+go-lint: go-vet
+go-arch: ; go run ./cmd/archlint
+go-test: ; go test ./...
+go-build: ; go build ./...
+# 离线评测门禁（与 Python `test` 目标同门禁数值，golden 对拍守护等价性）
+go-evaluate: ; go run ./cmd/mutual evaluate --config config/default.yaml --fail-on-gate
+go-check: go-lint go-arch go-test go-evaluate

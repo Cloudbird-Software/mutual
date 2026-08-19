@@ -48,6 +48,26 @@ jobs:
       runtime: python
       python-version: "3.12"
 
+  # Go 面（ADR-0027：Go+BAML 重写，双栈过渡期）。golden 差分对拍 +
+  # archlint 分层门禁 + 离线评测门禁，全部无网络凭据依赖。
+  # 不走 CI-Workflows check.yml：其 make setup/check 契约绑定 Python 面
+  #（uv sync），PR3 移除 Python 面后收敛回 runtime: go 的复用工作流。
+  go:
+    permissions:
+      contents: read
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version: "1.24"
+          cache: false
+      - name: go-check（vet + archlint + test + evaluate 门禁）
+        run: make go-check
+
   deps:
     if: github.event_name == 'pull_request'
     permissions:
@@ -111,8 +131,10 @@ jobs:
           exit $MISSING
 
   gate:
+    # 不访问仓库内容与 GitHub API：显式零权限（最小权限原则，CodeRabbit）。
+    permissions: {}
     if: always()
-    needs: [hygiene, check, deps, deps-audit, adr-required]
+    needs: [hygiene, check, go, deps, deps-audit, adr-required]
     runs-on: ubuntu-latest
     steps:
       - name: All required jobs green?

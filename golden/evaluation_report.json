@@ -1,0 +1,112 @@
+{
+  "hr_at_1": 0.9583,
+  "hr_at_3": 0.9583,
+  "hr_at_5": 0.9583,
+  "ndcg_at_5": 0.9583,
+  "envy_count_left": 1,
+  "envy_count_right": 0,
+  "total_scenarios": 24,
+  "metadata": {},
+  "per_bench": {
+    "classic": {
+      "hr_at_1": 0.875,
+      "hr_at_3": 0.875,
+      "hr_at_5": 0.875,
+      "ndcg_at_5": 0.875,
+      "envy_count_left": 0,
+      "envy_count_right": 0,
+      "total_scenarios": 8,
+      "metadata": {
+        "prediction_lengths": [
+          1,
+          1,
+          1,
+          0,
+          1,
+          1,
+          1,
+          1
+        ],
+        "scenario": "classic"
+      }
+    },
+    "drift": {
+      "hr_at_1": 1.0,
+      "hr_at_3": 1.0,
+      "hr_at_5": 1.0,
+      "ndcg_at_5": 1.0,
+      "envy_count_left": 0,
+      "envy_count_right": 1,
+      "total_scenarios": 8,
+      "metadata": {
+        "prediction_lengths": [
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1
+        ],
+        "scenario": "drift"
+      }
+    },
+    "cold": {
+      "hr_at_1": 1.0,
+      "hr_at_3": 1.0,
+      "hr_at_5": 1.0,
+      "ndcg_at_5": 1.0,
+      "envy_count_left": 0,
+      "envy_count_right": 0,
+      "total_scenarios": 8,
+      "metadata": {
+        "prediction_lengths": [
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1
+        ],
+        "scenario": "cold"
+      }
+    },
+    "market": {
+      "hr_at_1": 1.0,
+      "hr_at_3": 1.0,
+      "hr_at_5": 1.0,
+      "ndcg_at_5": 1.0,
+      "envy_count_left": 0,
+      "envy_count_right": 0,
+      "total_scenarios": 20,
+      "metadata": {
+        "prediction_lengths": [
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1
+        ],
+        "scenario": "market"
+      }
+    }
+  }
+}
