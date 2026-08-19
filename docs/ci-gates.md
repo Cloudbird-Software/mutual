@@ -24,7 +24,7 @@
 
 ### 2.1 check（runtime: go 复用工作流）
 
-- **命令**：`make setup` + `make check`（CI-Workflows check.yml，go-version 1.24）。
+- **命令**：`make setup` + `make check`（CI-Workflows check.yml，go-version 1.25.13）。
 - **构成**：
   - `make lint` = `go vet ./...`（编译器级静态检查）；
   - `make arch` = `go run ./cmd/archlint`（分层依赖门禁：engine 纯变换、IO 归 pipeline；新 internal 包未登记即违规，fail-closed）；
