@@ -267,15 +267,12 @@ def _attach_b_min_report(
     保持报告 shape 稳定，便于下游消费）。
     """
     M = len(pref_matrix.left_ids)
-    N = len(pref_matrix.right_ids)
     same_set = list(pref_matrix.left_ids) == list(pref_matrix.right_ids)
 
     if same_set:
         degrees = {pref_matrix.left_ids[i]: int(match_prob[i].sum()) for i in range(M)}
     else:
-        degrees = {
-            pref_matrix.left_ids[i]: int(match_prob[i, :].sum()) for i in range(M)
-        }
+        degrees = {pref_matrix.left_ids[i]: int(match_prob[i, :].sum()) for i in range(M)}
     # N == 0 时 match_prob 形状 [M, 0]，行和为 0——全部 member 违约，正确。
     violations = [uid for uid, deg in degrees.items() if deg < b_min]
     report["b_min"] = b_min

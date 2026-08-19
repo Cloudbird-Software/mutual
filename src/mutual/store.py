@@ -155,9 +155,7 @@ class FileStore(Store):
         else:
             # 路径穿越守卫（qodo #1）：不安全 ID 跳过，绝不拼入路径。
             files = [
-                sections_dir / f"{uid}.json"
-                for uid in user_ids
-                if _safe_filename(uid) is not None
+                sections_dir / f"{uid}.json" for uid in user_ids if _safe_filename(uid) is not None
             ]
         result: Dict[str, ExtractedSections] = {}
         for path in files:
