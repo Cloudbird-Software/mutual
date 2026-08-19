@@ -1,0 +1,124 @@
+{
+  "scenario": "drift",
+  "description": "兴趣演化：t1 稳定偏好后，d_m0/d_m1 的需求在 t2 漂移（互换兴趣），黄金真值随之改变。本文件为 t2 状态；求解与评测都用 t2。",
+  "members": {
+    "dm0": {
+      "needs": "need arduino robotics mentor for museum installation sensors",
+      "project": "interactive museum exhibit kinematics prototyping",
+      "skills": "processing touchdesigner exhibit wiring",
+      "vision": "playful public science engagement"
+    },
+    "dm1": {
+      "needs": "need graphql federated gateway expert to unify our apis",
+      "project": "merging six rest services into graphql federation",
+      "skills": "node typescript openapi contracts",
+      "vision": "sane api landscape for partners"
+    },
+    "dm2": {
+      "needs": "need 3d character animator for indie game cutscenes",
+      "project": "stylized indie adventure game blender",
+      "skills": "storyboarding writing rigging basics",
+      "vision": "handcrafted narrative games"
+    },
+    "dm3": {
+      "needs": "need edtech researcher for spaced repetition study design",
+      "project": "vocabulary retention experiment platform",
+      "skills": "teaching statistics spss curriculum",
+      "vision": "learning science in every classroom"
+    },
+    "dm4": {
+      "needs": "need food scientist for plant based texture reformulation",
+      "project": "vegan cheese melt profile optimization",
+      "skills": "sensory panels pilot plant safety",
+      "vision": "sustainable tasty food systems"
+    },
+    "dm5": {
+      "needs": "need urban planner for participatory zoning workshops",
+      "project": "neighborhood corridor redesign pilot",
+      "skills": "gis mapping community facilitation",
+      "vision": "cities shaped by residents"
+    },
+    "dm6": {
+      "needs": "need marine biologist for reef restoration monitoring design",
+      "project": "coral nursery sensor network",
+      "skills": "diving logistics grant reporting",
+      "vision": "living oceans beyond 2050"
+    },
+    "dm7": {
+      "needs": "need power systems engineer for microgrid islanding study",
+      "project": "island microgrid feasibility battery sizing",
+      "skills": "load forecasting excel stakeholder decks",
+      "vision": "energy autonomy for remote communities"
+    }
+  },
+  "pool": {
+    "dp0": {
+      "needs": "seeking api teams stuck on integration debt",
+      "project": "graphql federation migration guides",
+      "skills": "graphql federation apollo schema stitching node",
+      "vision": "sane api landscape for partners"
+    },
+    "dp1": {
+      "needs": "looking for fabrication spaces needing kinetic art help",
+      "project": "arduino sensor sculpture residencies",
+      "skills": "arduino robotics sensors kinetics fabrication",
+      "vision": "playful public science engagement"
+    },
+    "dp2": {
+      "needs": "want game teams with strong art direction",
+      "project": "stylized animation shorts blender",
+      "skills": "3d character animation blender indie cutscenes",
+      "vision": "handcrafted narrative games"
+    },
+    "dp3": {
+      "needs": "seeking classroom partners for retention studies",
+      "project": "spaced repetition meta analyses",
+      "skills": "edtech research spaced repetition study design rct",
+      "vision": "learning science in every classroom"
+    },
+    "dp4": {
+      "needs": "need product partners with texture problems",
+      "project": "plant based melt rheology papers",
+      "skills": "food science plant based texture reformulation hplc",
+      "vision": "sustainable tasty food systems"
+    },
+    "dp5": {
+      "needs": "seeking cities open to co design",
+      "project": "participatory zoning toolkit",
+      "skills": "urban planning zoning workshops gis policy",
+      "vision": "cities shaped by residents"
+    },
+    "dp6": {
+      "needs": "looking for dive teams with sensor data",
+      "project": "reef monitoring photogrammetry",
+      "skills": "marine biology reef restoration monitoring ecology",
+      "vision": "living oceans beyond 2050"
+    },
+    "dp7": {
+      "needs": "seeking islands with messy load data",
+      "project": "microgrid islanding case studies",
+      "skills": "power systems microgrid islanding batteries ieee",
+      "vision": "energy autonomy for remote communities"
+    }
+  },
+  "ground_truth": {
+    "dm0": "dp1",
+    "dm1": "dp0",
+    "dm2": "dp2",
+    "dm3": "dp3",
+    "dm4": "dp4",
+    "dm5": "dp5",
+    "dm6": "dp6",
+    "dm7": "dp7"
+  },
+  "ground_truth_t1": {
+    "dm0": "dp0",
+    "dm1": "dp1",
+    "dm2": "dp2",
+    "dm3": "dp3",
+    "dm4": "dp4",
+    "dm5": "dp5",
+    "dm6": "dp6",
+    "dm7": "dp7"
+  }
+}

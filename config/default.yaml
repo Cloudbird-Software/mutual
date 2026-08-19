@@ -1,0 +1,95 @@
+# Mutual 默认配置
+# 这是 spec 的参数层：所有可调参数集中在此。
+# 实现代码不硬编码参数，一律从 config 读取。
+
+# ---------------------------------------------------------------------------
+# 模型配置
+# ---------------------------------------------------------------------------
+models:
+  embedding: "voyage-3-lite"
+  embedding_dimensions: null       # null = 全尺寸；设数字则 MRL 截断
+  embedding_base_url: "https://api.voyageai.com/v1"
+  pair_llm: "LongCat-2.0"
+  reasoning_effort: "low"          # low/medium/high
+  pair_reasoning_effort: "medium"
+  base_url: "https://api.longcat.chat/openai"
+  # API key 不写入配置文件：从环境变量注入
+  #  - chat: OPENAI_API_KEY / MUTUAL_API_KEY
+  #  - embedding: VOYAGE_API_KEY / EMBEDDING_API_KEY（default 无独立值时回退 chat key）
+
+# ---------------------------------------------------------------------------
+# HyDE 配置
+# ---------------------------------------------------------------------------
+hyde:
+  n_descriptors: 1                 # 每个 section 生成几个假设性描述
+
+# ---------------------------------------------------------------------------
+# Recipe：相似度融合与打分指令
+# ---------------------------------------------------------------------------
+recipe:
+  instruction: >
+    Score this match on the value of connecting these two people.
+    The primary signal is how directly each person's skills can address
+    the other's project needs — the best matches are where both bring
+    something the other needs, but strong one-directional signal is also valuable.
+    Also reward a shared direction or overlapping ambition.
+    Consider specificity — a vague overlap is less valuable than a concrete
+    skill meeting a concrete need.
+  section_weights:
+    skills:   -0.10
+    vision:    0.35
+    project:   0.25
+    needs:    -0.10
+  cross_section_weights:
+    needs_skills: 0.80            # A 的 needs ↔ B 的 skills（方向性，不对称化）
+
+# ---------------------------------------------------------------------------
+# Blending：embedding 与 LLM 分数的混合权重
+# ---------------------------------------------------------------------------
+blending:
+  embed_weight: 0.35
+  llm_weight:   0.65
+
+# ---------------------------------------------------------------------------
+# 预算：LLM 调用上限
+# ---------------------------------------------------------------------------
+budgets:
+  max_n_llm_evaluations_per_profile: 24    # 每用户最多打多少对
+  max_pair_llm_calls: 1200                  # 全局 LLM 调用上限
+  n_profiles_to_score_together: 2          # 一次 prompt 打几对
+
+# ---------------------------------------------------------------------------
+# 匹配：度约束与 novelty
+# ---------------------------------------------------------------------------
+matching:
+  b_min: 3                         # 每人最少匹配数
+  b_max: 4                         # 每人最多匹配数
+  min_profiles_required: 2         # 最少需要几个 profile 才能跑
+  pool_b_max: null                 # null = 不限；设数字则限制 pool 侧度数
+  novelty_window_months: 6         # 6 个月内已暴露的 pair 排除
+
+# ---------------------------------------------------------------------------
+# 并发
+# ---------------------------------------------------------------------------
+concurrency:
+  max_concurrent_llm_calls: 16
+
+# ---------------------------------------------------------------------------
+# 评测门禁（CI 强制）
+# ---------------------------------------------------------------------------
+evaluation:
+  n_candidates_per_scenario: 20    # 每题 20 候选
+  n_values: [1, 3, 5]              # HR@K 的 K 值
+  gates:
+    hr_at_3_min: 0.6
+    ndcg_at_5_min: 0.4
+    total_envy_max: 2
+
+# ---------------------------------------------------------------------------
+# Prompt 模板（可被外部文件覆盖）
+# ---------------------------------------------------------------------------
+prompts:
+  scoring_prompt_text: null        # null = 用内置默认
+  introduction_prompt_text: null
+  section_prompt_text: null
+  hyde_prompt_text: null

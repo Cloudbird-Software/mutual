@@ -1,0 +1,126 @@
+{
+  "scenario": "classic",
+  "description": "经典互惠：稳定双向偏好。10 member x 8 pool，m_i <-> p_i 为黄金对（i<8）；m8/m9 为无真值竞争者（制造资源竞争）。",
+  "members": {
+    "m0": {
+      "needs": "need rust engineer for blockchain consensus layer audit and performance tuning",
+      "project": "building decentralized settlement network in rust",
+      "skills": "distributed systems consensus rust networking",
+      "vision": "decentralized infrastructure resilient settlement"
+    },
+    "m1": {
+      "needs": "need react accessibility expert to redesign onboarding wcag compliant",
+      "project": "fintech dashboard rewrite react typescript",
+      "skills": "product design user research figma",
+      "vision": "accessible financial tools for everyone"
+    },
+    "m2": {
+      "needs": "need pytorch nlp engineer for domain finetuning and evaluation",
+      "project": "legal document classifier pytorch transformers",
+      "skills": "python data pipelines airflow",
+      "vision": "practical nlp for regulated industries"
+    },
+    "m3": {
+      "needs": "need kubernetes terraform automation to cut cloud cost",
+      "project": "migrating legacy monolith to eks with finops guardrails",
+      "skills": "devops cicd observability prometheus",
+      "vision": "efficient cloud engineering culture"
+    },
+    "m4": {
+      "needs": "need fpga engineer for radar signal processing chain",
+      "project": "automotive radar prototype fpga verilog dsp",
+      "skills": "matlab algorithm modeling control theory",
+      "vision": "safer autonomous sensing"
+    },
+    "m5": {
+      "needs": "need grant writer with nih clinical trial experience",
+      "project": "stroke rehabilitation study phase two",
+      "skills": "clinical research statistics r coordination",
+      "vision": "evidence based rehabilitation at scale"
+    },
+    "m6": {
+      "needs": "need swift developer for visionos spatial ar prototype",
+      "project": "spatial training app visionos arkit realitykit",
+      "skills": "unity c shader basics 3d math",
+      "vision": "immersive learning environments"
+    },
+    "m7": {
+      "needs": "need supply chain forecasting and python optimization",
+      "project": "regional inventory optimization network design",
+      "skills": "sql tableau operations research basics",
+      "vision": "resilient data driven supply chains"
+    },
+    "m8": {
+      "needs": "need pytorch gpu engineer transformers inference optimization",
+      "project": "realtime recommendation inference serving",
+      "skills": "cuda tensorrt serving rust",
+      "vision": "low latency ml everywhere"
+    },
+    "m9": {
+      "needs": "need kubernetes aws finops automation and terraform modules",
+      "project": "multi region cost optimization program",
+      "skills": "aws billing analytics python scripting",
+      "vision": "transparent cloud economics"
+    }
+  },
+  "pool": {
+    "p0": {
+      "needs": "seeking hard distributed systems problems to harden",
+      "project": "open source blockchain consensus library in rust",
+      "skills": "rust blockchain consensus performance formal verification",
+      "vision": "decentralized infrastructure resilient settlement"
+    },
+    "p1": {
+      "needs": "looking for product teams needing design systems help",
+      "project": "accessibility component library react typescript wcag",
+      "skills": "react typescript accessibility wcag design systems",
+      "vision": "accessible financial tools for everyone"
+    },
+    "p2": {
+      "needs": "want domain datasets with clear evaluation criteria",
+      "project": "nlp finetuning benchmarks pytorch transformers",
+      "skills": "pytorch nlp transformers gpu finetuning evaluation",
+      "vision": "practical nlp for regulated industries"
+    },
+    "p3": {
+      "needs": "seeking teams drowning in cloud spend",
+      "project": "eks migration cookbook with finops guardrails",
+      "skills": "kubernetes terraform aws finops automation cost",
+      "vision": "efficient cloud engineering culture"
+    },
+    "p4": {
+      "needs": "need radar datasets and algorithm partners",
+      "project": "fpga dsp radar reference design verilog",
+      "skills": "fpga verilog dsp radar signal processing timing",
+      "vision": "safer autonomous sensing"
+    },
+    "p5": {
+      "needs": "seeking clinical teams with strong trial designs",
+      "project": "nih grant portfolio stroke recovery",
+      "skills": "grant writing nih clinical trials irb compliance",
+      "vision": "evidence based rehabilitation at scale"
+    },
+    "p6": {
+      "needs": "looking for 3d content and learning scenarios",
+      "project": "visionos arkit realitykit spatial sdk samples",
+      "skills": "swift visionos arkit realitykit spatial ui",
+      "vision": "immersive learning environments"
+    },
+    "p7": {
+      "needs": "seeking messy inventory data to model",
+      "project": "demand forecasting benchmarks python optimization",
+      "skills": "supply chain forecasting python optimization simulation",
+      "vision": "resilient data driven supply chains"
+    }
+  },
+  "ground_truth": {
+    "m0": "p0",
+    "m1": "p1",
+    "m2": "p2",
+    "m3": "p3",
+    "m4": "p4",
+    "m5": "p5",
+    "m6": "p6",
+    "m7": "p7"
+  }
+}
