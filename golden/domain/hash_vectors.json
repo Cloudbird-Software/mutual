@@ -1,0 +1,126 @@
+{
+ "hash_vectors": [
+  {
+   "sections": {},
+   "dump": "{}",
+   "hash": "44136fa355b3678a"
+  },
+  {
+   "sections": {
+    "skills": "AI"
+   },
+   "dump": "{\"skills\": \"AI\"}",
+   "hash": "ef84aae507795f99"
+  },
+  {
+   "sections": {
+    "skills": "AI",
+    "vision": "x"
+   },
+   "dump": "{\"skills\": \"AI\", \"vision\": \"x\"}",
+   "hash": "239f48d7d4ba5535"
+  },
+  {
+   "sections": {
+    "skills": "机器学习",
+    "needs": "数据"
+   },
+   "dump": "{\"needs\": \"\\u6570\\u636e\", \"skills\": \"\\u673a\\u5668\\u5b66\\u4e60\"}",
+   "hash": "6054536b4c0f13a9"
+  },
+  {
+   "sections": {
+    "a": "quote\"back\\slash",
+    "b": "tab\tnew\nline"
+   },
+   "dump": "{\"a\": \"quote\\\"back\\\\slash\", \"b\": \"tab\\tnew\\nline\"}",
+   "hash": "dc1afca1b4239eca"
+  },
+  {
+   "sections": {
+    "emoji": "🎨 art",
+    "ctrl": "\u0001\u001f"
+   },
+   "dump": "{\"ctrl\": \"\\u0001\\u001f\", \"emoji\": \"\\ud83c\\udfa8 art\"}",
+   "hash": "27eb866da82ce80a"
+  },
+  {
+   "sections": {
+    "z": "last",
+    "a": "first",
+    "m": "mid"
+   },
+   "dump": "{\"a\": \"first\", \"m\": \"mid\", \"z\": \"last\"}",
+   "hash": "01f691e5bccb4782"
+  },
+  {
+   "sections": {
+    "surrogate": "😀"
+   },
+   "dump": "{\"surrogate\": \"\\ud83d\\ude00\"}",
+   "hash": "fd9c32651517742e"
+  }
+ ],
+ "round_vectors": [
+  {
+   "x": "0.1235",
+   "n": 3,
+   "r": "0.123"
+  },
+  {
+   "x": "0.12349",
+   "n": 3,
+   "r": "0.123"
+  },
+  {
+   "x": "0.0625",
+   "n": 3,
+   "r": "0.062"
+  },
+  {
+   "x": "-0.0625",
+   "n": 3,
+   "r": "-0.062"
+  },
+  {
+   "x": "0.12345678",
+   "n": 3,
+   "r": "0.123"
+  },
+  {
+   "x": "1.0",
+   "n": 3,
+   "r": "1.0"
+  },
+  {
+   "x": "0.9995",
+   "n": 3,
+   "r": "1.0"
+  },
+  {
+   "x": "0.8625",
+   "n": 3,
+   "r": "0.863"
+  },
+  {
+   "x": "2.675",
+   "n": 3,
+   "r": "2.675"
+  },
+  {
+   "x": "1.005",
+   "n": 3,
+   "r": "1.005"
+  },
+  {
+   "x": "0.5",
+   "n": 3,
+   "r": "0.5"
+  },
+  {
+   "x": "0.15",
+   "n": 3,
+   "r": "0.15"
+  }
+ ]
+}

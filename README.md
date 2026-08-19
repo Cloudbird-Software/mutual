@@ -1,6 +1,6 @@
 # Mutual
 
-> **LLM 驱动的双向互惠推荐引擎。** Spec 驱动，代码可丢弃。
+> **LLM 驱动的双向互惠推荐引擎。** Spec 驱动，代码可丢弃。Go + BAML 实现。
 
 Mutual 用于协会会员互识、商业机会推荐、招商与投资对接。与传统"排序式"推荐不同，它做的是**匹配**：A 推荐 B，必须同时满足 B 也愿意对接 A。
 
@@ -10,9 +10,13 @@ Mutual 用于协会会员互识、商业机会推荐、招商与投资对接。�
 
 Mutual 是一个 **LLM 驱动的双向互惠推荐引擎**。核心范式：**spec 驱动，代码可丢弃**。
 
-- spec（`spec/` 目录 + `src/mutual/schemas.py` + `src/mutual/stages.py` + `config/default.yaml` + `tests/golden/`）是唯一真相。
-- 实现代码（`src/mutual/` 各模块）只是 spec 的执行体，可以随时重写。
+- spec（`spec/` 目录 + `config/default.yaml` + `golden/`）是唯一真相。
+- 实现代码（Go `internal/` 各包）只是 spec 的执行体，可以随时重写。
 - 衡量实现好坏的标准是：它是否暴露了 spec 的沉默（没说清楚的边界）与缺陷（错误的假设）。发现沉默时，**改 spec 而非 hack 实现**。
+
+当前实现为 **Go + BAML**（ADR-0027）：`internal/engine` 承载 11 阶段确定性
+核心，`baml_src/` 用类型化契约定义全部 LLM prompt。Go 实现与 Python 基线
+做 **golden 逐位对拍**——同一输入，浮点结果逐位一致，证明重写零语义漂移。
 
 ### 核心特征
 
@@ -22,6 +26,7 @@ Mutual 是一个 **LLM 驱动的双向互惠推荐引擎**。核心范式：**sp
 | **自然语言丛林** | 实体只有自由文本画像（简历、需求、愿景、项目），无确定属性标签。LLM 是唯一能做语义判断的组件。 |
 | **spec 驱动** | strongDM 范式——契约是唯一真相，实现代码可丢弃重写。schema/stage/config/golden 四件套即 spec。 |
 | **开发期零真实数据** | 全部用 benchmark 与合成 fixture，不接触真实协会数据。golden fixture 提供"固定输入→固定输出"的可执行 spec。 |
+| **AI 可读性优先** | 强类型 ID 贯穿全链路、包注释即导航、分层依赖机器强制（`cmd/archlint`）、文档系统面向 agent 优化。 |
 
 ### 三层漏斗 + 互惠求解
 
@@ -40,32 +45,22 @@ Mutual 是一个 **LLM 驱动的双向互惠推荐引擎**。核心范式：**sp
 ## 2. 快速开始
 
 ```bash
-# 克隆仓库
-git clone <repo-url> mutual
-cd mutual
+# Go 面（主实现）：测试 + 依赖边界 + 评测门禁，全离线，无需 LLM 凭据
+make go-check
 
-# 安装开发依赖（含 pytest / ruff / mypy）
-pip install -e ".[dev]"
+# 只跑评测门禁（HR@3≥0.6 / NDCG@5≥0.4 / total_envy≤2）
+go run ./cmd/mutual evaluate --fail-on-gate
 
-# 运行测试（默认跳过需要真实 LLM 的测试）
-pytest tests/
+# 校准闭环（按评测历史调整融合权重 / prompt）
+go run ./cmd/mutual calibrate --history reports.json
 ```
 
-需要 FairRec 互惠求解（Phase 2）时安装可选依赖：
+LLM 接入（生产）：`internal/bamlllm.Client` 实现 `engine.LLMClient`，
+prompt 契约在 `baml_src/*.baml`。变更流程见
+[docs/AI-GUIDE.md §5.2](docs/AI-GUIDE.md)。
 
-```bash
-pip install -e ".[fair]"   # 安装 cvxpy, torch
-```
-
-### 运行需要真实 LLM 的测试
-
-默认情况下，标记为 `llm` 的测试会被跳过（CI 与本地都不跑）。手动触发：
-
-```bash
-RUN_LLM_TESTS=1 pytest tests/ -m "llm"
-```
-
-详见 [docs/ci-gates.md](docs/ci-gates.md)。
+> Python 基线（`src/`）在双栈过渡期保留，仅用于 golden 参考值捕获
+> （`scripts/capture_golden_engine.py`），最终将被移除。
 
 ---
 
@@ -73,7 +68,6 @@ RUN_LLM_TESTS=1 pytest tests/ -m "llm"
 
 ```
 mutual/
-├── CLAUDE.md                    # agent swarm 入口指令（施工铁律）
 ├── spec/                        # 唯一真相（不可随意修改）
 │   ├── 00-overview.md           # 项目定位、四件套、架构
 │   ├── 01-schemas.md            # 数据契约字段级 spec
@@ -81,40 +75,31 @@ mutual/
 │   ├── 03-oracles.md            # Oracle 定义（HR/NDCG + envy）
 │   ├── 04-fixtures.md           # Fixture 目录与规则
 │   └── 05-boundaries.md         # 显式边界决定（消除沉默）
-├── src/mutual/                 # 实现代码（可丢弃重写）
-│   ├── schemas.py               # IO 契约（dataclass）
-│   ├── stages.py                # StageSpec 注册表
-│   ├── config.py                # 配置加载器
-│   ├── llm.py                   # LLM wrapper（Phase 1）
-│   ├── store.py                 # Store protocol + FileStore（Phase 1）
-│   ├── embed.py                 # Embedding（Phase 1）
-│   ├── extract.py               # Profile 提取（Phase 1）
-│   ├── hyde.py                  # HyDE 生成（Phase 1）
-│   ├── similarity.py            # 方向性相似度（Phase 1）
-│   ├── select.py                # 候选对选择（Phase 1）
-│   ├── score.py                 # LLM 双向打分 + pre_matrix（Phase 1）
-│   ├── match.py                 # NSW 匹配（Phase 2）
-│   ├── evaluate.py              # Oracle 计算（Phase 2）
-│   ├── introduce.py             # 对接话术（Phase 1）
-│   ├── report.py                # 匹配报告（Phase 1）
-│   ├── runners.py               # 模式运行器（Phase 1）
-│   └── __init__.py
+├── internal/                    # Go 实现（可丢弃重写）
+│   ├── domain/                  # 强类型契约：UserID/PairID/Edge/MatchResult...
+│   ├── num/                     # glibc log 位级移植（NumPy randn 兼容）
+│   ├── rng/                     # MT19937（NumPy RandomState 语义）
+│   ├── engine/                  # 11 阶段纯变换 + LLMClient/Embedder 接口
+│   ├── signal/                  # Fake/Surrogate 信号源（离线评测替身）
+│   ├── bamlllm/                 # BAML 类型化客户端桥接
+│   ├── store/                   # FileStore（路径穿越守卫）
+│   ├── pipeline/                # RunFullMatch / RunQueryMatch / RunBatchMatch
+│   ├── bench/                   # 三场景评测 + 合成市场 oracle
+│   ├── feedback/                # LLM 自改进闭环（权重/prompt 校准）
+│   └── goldentest/              # BAML prompt 快照门禁
+├── cmd/
+│   ├── mutual/                  # CLI：evaluate / calibrate
+│   └── archlint/                # 分层依赖边界检查器
 ├── config/default.yaml          # 默认配置（可调参数集中地）
-├── tests/
-│   ├── conftest.py              # 公共 fixture
-│   ├── golden/                  # 可执行 spec（固定答案）
-│   │   ├── test_basic/          # 4 人 cohort
-│   │   └── test_reciprocal/     # 合成市场
-│   ├── test_schemas.py          # 契约测试
-│   ├── test_stages.py           # 阶段注册测试
-│   ├── test_golden.py           # Golden 回归测试（Phase 1）
-│   └── test_oracles.py          # Oracle 测试（Phase 2）
+├── baml_src/                    # LLM prompt 契约（唯一事实来源）
+├── baml_client/                 # BAML 生成代码（提交入库，勿手改）
+├── golden/                      # Python 基线捕获的差分对拍参考值
 ├── docs/
+│   ├── ARCHITECTURE.md          # Go+BAML 架构总图（分层/数据流/桥接）
+│   ├── AI-GUIDE.md              # AI 协作指南（改哪/怎么改/铁律）
 │   ├── engineering-plan.md      # 工程方案（施工蓝图）
 │   └── ci-gates.md              # CI 门禁定义
-├── pyproject.toml               # 项目配置（依赖、lint、type、test）
-├── .github/workflows/ci.yml     # CI pipeline
-└── CONTRIBUTING.md              # PR 规则与开发流程
+└── .github/workflows/ci.yml     # CI pipeline（双栈：check + go）
 ```
 
 ---
@@ -125,18 +110,19 @@ Mutual 的 spec 由四件套组成，它们共同构成项目的唯一真相源�
 
 | 件 | 文件 | 作用 |
 |---|---|---|
-| **schema** | `src/mutual/schemas.py` + `spec/01-schemas.md` | IO 契约：每个数据结构的字段、类型、语义。dataclass 的 `to_dict`/`from_dict` 往返一致性由 `tests/test_schemas.py` 守护。 |
-| **stage** | `src/mutual/stages.py` + `spec/02-stages.md` | 变换声明：每阶段输入/输出/纯函数/run·load·dump。`StageSpec` 注册表让外部 caller 无需读源码即可了解每阶段的 IO 契约。 |
+| **schema** | `internal/domain/` + `spec/01-schemas.md` | IO 契约：每个数据结构的字段、类型、语义。强类型 + JSON 往返一致性由测试守护。 |
+| **stage** | `internal/engine/` + `spec/02-stages.md` | 变换声明：每阶段输入/输出/纯函数。包注释即阶段文档（`go doc` 可检索）。 |
 | **config** | `config/default.yaml` | 可调参数：blending、budget、degree、prompt。实现代码不硬编码参数，一律从 config 读取。 |
-| **golden** | `tests/golden/` + `spec/04-fixtures.md` | 可执行 spec：固定输入→固定输出。实现重写后必须逐位通过 golden test，不允许为了让 test 通过而修改 fixture 期望值。 |
+| **golden** | `golden/` + `spec/04-fixtures.md` | 可执行 spec：固定输入→固定输出。实现重写后必须逐位通过 golden 对拍，不允许为了让 test 通过而修改期望值。 |
 
 ### 关键约束
 
-- **契约不可改**：`schemas.py` 的 dataclass 字段和 `stages.py` 的 StageSpec 的 name/io_schema 不可修改。如需修改，先在 spec 文档中提出变更理由，经审核后再改。
-- **实现是纯变换**：stage 的 `run` 函数不碰文件系统、数据库、网络。一切 IO 归 adapter（`store.py` + `runners.py`）。
+- **实现是纯变换**：`internal/engine` 不碰文件系统、数据库、网络。一切 IO 归适配层（`store` / `pipeline` / `bamlllm`）。
+- **分层单向依赖**：低层不得 import 高层，`cmd/archlint` 机器强制（`make go-arch`）。
 - **不硬编码参数**：所有可调参数从 `config/default.yaml` 读取。
+- **确定性**：同输入两次运行逐位一致（RNG 流/求和/遍历序全部固定）。
 
-> 完整施工铁律见 [CLAUDE.md §2](CLAUDE.md)，边界决定见 [spec/05-boundaries.md](spec/05-boundaries.md)。
+> 完整施工铁律见 [CLAUDE.md](CLAUDE.md)，边界决定见 [spec/05-boundaries.md](spec/05-boundaries.md)。
 
 ---
 
@@ -149,7 +135,7 @@ Mutual 的 spec 由四件套组成，它们共同构成项目的唯一真相源�
 | HR@1/3/5、NDCG@5 | AgentRecBench | 推荐质量：该推荐的有没有被推荐 |
 | envy-freeness | FairRec | 互惠公平：双方是否都受益 |
 
-评测通过标准写入 spec，CI 门禁强制执行（Phase 2+ 启用）：
+评测通过标准写入 spec，CI 门禁强制执行：
 
 - `HR@3 >= 0.6`
 - `NDCG@5 >= 0.4`
@@ -161,13 +147,13 @@ Mutual 的 spec 由四件套组成，它们共同构成项目的唯一真相源�
 
 ## 6. 开发流程
 
-1. 先读 spec（`spec/00-overview.md` + 目标 stage 的 spec）
-2. 实现该 stage 的 `run`/`load`/`dump`（纯变换，不做 IO）
-3. 写对应的单元测试
-4. 到 `stages.py` 把 `_stub_run`/`_stub_load`/`_stub_dump` 替换为真实函数
-5. 提交 PR（一个 stage 一个 PR，标题格式 `[stage:xxx] 描述`）
+1. 先读 spec（`spec/00-overview.md` + 目标 stage 的 spec）。
+2. 按 [docs/AI-GUIDE.md §1](docs/AI-GUIDE.md) 定位唯一入口文件。
+3. 实现 / 修改（保持纯变换与类型纪律）。
+4. `make go-check` 全绿后提交 PR。
+5. golden 对拍失败时先排查确定性（map 遍历序 / RNG 消费顺序），再怀疑语义分歧。
 
-完整流程、PR 模板与 review checklist 见 [CONTRIBUTING.md](CONTRIBUTING.md)。
+完整流程、PR 规则与 review checklist 见 [CONTRIBUTING.md](CONTRIBUTING.md)。
 
 ---
 

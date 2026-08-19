@@ -1,0 +1,715 @@
+{
+ "bundle": {
+  "user_ids": [
+   "alice",
+   "bob",
+   "carol",
+   "david"
+  ],
+  "section_names": [
+   "needs",
+   "project",
+   "skills",
+   "vision"
+  ],
+  "dim": 8,
+  "embeddings": [
+   [
+    [
+     0.8799552735933688,
+     0.08788801310721832,
+     -0.09531907632843574,
+     -0.10197872773564279,
+     0.3607285768348539,
+     0.25569552884623237,
+     0.017048966005315948,
+     0.051701542970149506
+    ],
+    [
+     0.9090543285862753,
+     0.19640708267870316,
+     0.1587079673352501,
+     -0.2042521755173499,
+     0.04333183511881564,
+     0.03607097060662708,
+     0.21318601042212926,
+     0.13967919515077196
+    ],
+    [
+     0.609204241256205,
+     -0.07555058346849085,
+     0.3391108422614939,
+     -0.08910814692914368,
+     -0.10966411063376381,
+     0.09691332282616416,
+     0.6601170771293837,
+     -0.20749195590295288
+    ],
+    [
+     0.9232599707873654,
+     0.02590966930708495,
+     0.0631690036575418,
+     0.10933468903246789,
+     0.00019627808434534202,
+     0.2805132897262329,
+     -0.14894858749721762,
+     -0.1734989687971119
+    ]
+   ],
+   [
+    [
+     0.6956281025557612,
+     -0.4922097030323062,
+     -0.22768812953917195,
+     0.14817001198257757,
+     -0.33486584844697603,
+     0.03169675210660587,
+     -0.2813210324768844,
+     0.088054361206447
+    ],
+    [
+     0.737083543187289,
+     -0.05569979402570399,
+     -0.4304277900799059,
+     -0.2709681746230285,
+     -0.36484032043114784,
+     0.07993076929812293,
+     0.10550929792928405,
+     -0.21043752026180007
+    ],
+    [
+     0.9152989438497089,
+     0.23172977485365648,
+     0.011996742189975882,
+     0.04235011349158572,
+     -0.0020364526767257243,
+     0.1725105440151764,
+     0.22785870200683964,
+     -0.15782293205298095
+    ],
+    [
+     0.9184797350776115,
+     0.005904587879619154,
+     0.20184371614761148,
+     -0.17580322275694263,
+     0.22958179135828308,
+     -0.00267006171242633,
+     0.013310343869151874,
+     0.17838262193102256
+    ]
+   ],
+   [
+    [
+     0.8694076629212129,
+     -0.14198610453929428,
+     -0.0034897309183352532,
+     -0.3422741431657239,
+     -0.09691863994723478,
+     -0.18096829014991142,
+     -0.1979477213961189,
+     0.1596259667316029
+    ],
+    [
+     0.9499220548274007,
+     0.11451590342415639,
+     0.1662207886381394,
+     -0.0834947136567562,
+     -0.10327551262384985,
+     -0.15288140882972168,
+     -0.12052575489803506,
+     0.03699277718837583
+    ],
+    [
+     0.8690913940055031,
+     -0.19918848964166033,
+     0.14051644269059796,
+     0.0746036021312179,
+     0.17389978449675766,
+     0.3139742810840276,
+     -0.17162547485210009,
+     0.146346296482053
+    ],
+    [
+     0.83569799941096,
+     0.15662212910815657,
+     0.032307650451096445,
+     0.37240289251156244,
+     -0.01972821229926264,
+     0.3439483553467735,
+     0.005082785145648484,
+     0.13651064286123088
+    ]
+   ],
+   [
+    [
+     0.9229283071232713,
+     -0.13497970698648798,
+     0.10548525839742204,
+     0.027531557089030458,
+     -0.28232873175004175,
+     -0.10144062719527291,
+     -0.00589019386224833,
+     -0.16752398107854455
+    ],
+    [
+     0.8875077648818724,
+     -0.007124507485122173,
+     0.21520372275921598,
+     0.1927162458356846,
+     -0.11581257600197373,
+     0.31074569776188504,
+     -0.10387688100778422,
+     0.08978400260298532
+    ],
+    [
+     0.9140587960537053,
+     -0.2418909202350722,
+     -0.15760845530912773,
+     -0.062092653184676716,
+     0.03398634376898803,
+     -0.029811284178435597,
+     0.10314557938828467,
+     -0.25417824951349133
+    ],
+    [
+     0.8687047431579289,
+     -0.3689690102265336,
+     0.1118156155125018,
+     0.22201726300435642,
+     -0.08682270358628341,
+     -0.0439987469632129,
+     0.0340427508833877,
+     -0.191798230656361
+    ]
+   ]
+  ],
+  "hyde_shapes": {
+   "needs": [
+    4,
+    0,
+    8
+   ],
+   "project": [
+    4,
+    0,
+    8
+   ],
+   "skills": [
+    4,
+    0,
+    8
+   ],
+   "vision": [
+    4,
+    0,
+    8
+   ]
+  }
+ },
+ "similarity": {
+  "dir_matrix": [
+   [
+    0.6612959209486893,
+    0.8388613236846678,
+    0.9325347551167317,
+    0.834993075769047
+   ],
+   [
+    0.40349076271583423,
+    0.6362286963869964,
+    0.6886532896046742,
+    0.6707457316785483
+   ],
+   [
+    0.6159243081935455,
+    0.6569571760409803,
+    0.8276743254693919,
+    0.7795361924790666
+   ],
+   [
+    0.7417187201425512,
+    0.7415545708705756,
+    0.7458507667993279,
+    0.928885590376014
+   ]
+  ],
+  "fused_matrix": [
+   [
+    0.6612959209486893,
+    0.621176043200251,
+    0.7742295316551386,
+    0.7883558979557992
+   ],
+   [
+    0.621176043200251,
+    0.6362286963869964,
+    0.6728052328228272,
+    0.706150151274562
+   ],
+   [
+    0.7742295316551386,
+    0.6728052328228272,
+    0.8276743254693919,
+    0.7626934796391973
+   ],
+   [
+    0.7883558979557992,
+    0.706150151274562,
+    0.7626934796391973,
+    0.928885590376014
+   ]
+  ]
+ },
+ "selected_pairs": [
+  {
+   "user1": "alice",
+   "user2": "david",
+   "pair_id": "alice__david",
+   "similarity_score": 0.7883558979557992
+  },
+  {
+   "user1": "bob",
+   "user2": "david",
+   "pair_id": "bob__david",
+   "similarity_score": 0.706150151274562
+  },
+  {
+   "user1": "alice",
+   "user2": "carol",
+   "pair_id": "alice__carol",
+   "similarity_score": 0.7742295316551386
+  },
+  {
+   "user1": "carol",
+   "user2": "david",
+   "pair_id": "carol__david",
+   "similarity_score": 0.7626934796391973
+  },
+  {
+   "user1": "alice",
+   "user2": "bob",
+   "pair_id": "alice__bob",
+   "similarity_score": 0.621176043200251
+  },
+  {
+   "user1": "bob",
+   "user2": "carol",
+   "pair_id": "bob__carol",
+   "similarity_score": 0.6728052328228272
+  }
+ ],
+ "pair_scores": {
+  "alice__david": {
+   "pair_id": "alice__david",
+   "user1": "alice",
+   "user2": "david",
+   "embed_score": 0.788,
+   "llm_score": 0.575,
+   "llm_score_a_to_b": 0.52,
+   "llm_score_b_to_a": 0.63,
+   "embed_score_normalized": 1.0,
+   "llm_score_normalized": 0.2
+  },
+  "bob__david": {
+   "pair_id": "bob__david",
+   "user1": "bob",
+   "user2": "david",
+   "embed_score": 0.706,
+   "llm_score": 0.515,
+   "llm_score_a_to_b": 0.45,
+   "llm_score_b_to_a": 0.58,
+   "embed_score_normalized": 0.508,
+   "llm_score_normalized": 0.04
+  },
+  "alice__carol": {
+   "pair_id": "alice__carol",
+   "user1": "alice",
+   "user2": "carol",
+   "embed_score": 0.774,
+   "llm_score": 0.81,
+   "llm_score_a_to_b": 0.8,
+   "llm_score_b_to_a": 0.82,
+   "embed_score_normalized": 0.916,
+   "llm_score_normalized": 0.827
+  },
+  "carol__david": {
+   "pair_id": "carol__david",
+   "user1": "carol",
+   "user2": "david",
+   "embed_score": 0.763,
+   "llm_score": 0.5,
+   "llm_score_a_to_b": 0.35,
+   "llm_score_b_to_a": 0.65,
+   "embed_score_normalized": 0.846,
+   "llm_score_normalized": 0.0
+  },
+  "alice__bob": {
+   "pair_id": "alice__bob",
+   "user1": "alice",
+   "user2": "bob",
+   "embed_score": 0.621,
+   "llm_score": 0.875,
+   "llm_score_a_to_b": 0.85,
+   "llm_score_b_to_a": 0.9,
+   "embed_score_normalized": 0.0,
+   "llm_score_normalized": 1.0
+  },
+  "bob__carol": {
+   "pair_id": "bob__carol",
+   "user1": "bob",
+   "user2": "carol",
+   "embed_score": 0.673,
+   "llm_score": 0.825,
+   "llm_score_a_to_b": 0.83,
+   "llm_score_b_to_a": 0.82,
+   "embed_score_normalized": 0.309,
+   "llm_score_normalized": 0.867
+  }
+ },
+ "pair_score_order": [
+  "alice__david",
+  "bob__david",
+  "alice__carol",
+  "carol__david",
+  "alice__bob",
+  "bob__carol"
+ ],
+ "unscored_pair_ids": [],
+ "pref_matrix": {
+  "left_ids": [
+   "alice",
+   "bob",
+   "carol",
+   "david"
+  ],
+  "right_ids": [
+   "alice",
+   "bob",
+   "carol",
+   "david"
+  ],
+  "pref_left_to_right": [
+   [
+    0.0,
+    0.85,
+    0.8,
+    0.52
+   ],
+   [
+    0.9,
+    0.0,
+    0.83,
+    0.45
+   ],
+   [
+    0.82,
+    0.82,
+    0.0,
+    0.35
+   ],
+   [
+    0.63,
+    0.58,
+    0.65,
+    0.0
+   ]
+  ],
+  "pref_right_to_left": [
+   [
+    0.0,
+    0.85,
+    0.8,
+    0.52
+   ],
+   [
+    0.9,
+    0.0,
+    0.83,
+    0.45
+   ],
+   [
+    0.82,
+    0.82,
+    0.0,
+    0.35
+   ],
+   [
+    0.63,
+    0.58,
+    0.65,
+    0.0
+   ]
+  ]
+ },
+ "match": {
+  "edges": [
+   {
+    "user1": "alice",
+    "user2": "bob",
+    "pair_id": "alice__bob",
+    "final_weight": 0.875,
+    "embed_score": 0.875,
+    "llm_score": 0.875,
+    "embed_score_normalized": null,
+    "llm_score_normalized": null,
+    "llm_score_a_to_b": 0.85,
+    "llm_score_b_to_a": 0.9,
+    "intro": "",
+    "starter_topics": ""
+   },
+   {
+    "user1": "bob",
+    "user2": "carol",
+    "pair_id": "bob__carol",
+    "final_weight": 0.825,
+    "embed_score": 0.825,
+    "llm_score": 0.825,
+    "embed_score_normalized": null,
+    "llm_score_normalized": null,
+    "llm_score_a_to_b": 0.83,
+    "llm_score_b_to_a": 0.82,
+    "intro": "",
+    "starter_topics": ""
+   },
+   {
+    "user1": "alice",
+    "user2": "carol",
+    "pair_id": "alice__carol",
+    "final_weight": 0.81,
+    "embed_score": 0.81,
+    "llm_score": 0.81,
+    "embed_score_normalized": null,
+    "llm_score_normalized": null,
+    "llm_score_a_to_b": 0.8,
+    "llm_score_b_to_a": 0.82,
+    "intro": "",
+    "starter_topics": ""
+   },
+   {
+    "user1": "alice",
+    "user2": "david",
+    "pair_id": "alice__david",
+    "final_weight": 0.572,
+    "embed_score": 0.572,
+    "llm_score": 0.572,
+    "embed_score_normalized": null,
+    "llm_score_normalized": null,
+    "llm_score_a_to_b": 0.52,
+    "llm_score_b_to_a": 0.63,
+    "intro": "",
+    "starter_topics": ""
+   },
+   {
+    "user1": "bob",
+    "user2": "david",
+    "pair_id": "bob__david",
+    "final_weight": 0.511,
+    "embed_score": 0.511,
+    "llm_score": 0.511,
+    "embed_score_normalized": null,
+    "llm_score_normalized": null,
+    "llm_score_a_to_b": 0.45,
+    "llm_score_b_to_a": 0.58,
+    "intro": "",
+    "starter_topics": ""
+   },
+   {
+    "user1": "carol",
+    "user2": "david",
+    "pair_id": "carol__david",
+    "final_weight": 0.477,
+    "embed_score": 0.477,
+    "llm_score": 0.477,
+    "embed_score_normalized": null,
+    "llm_score_normalized": null,
+    "llm_score_a_to_b": 0.35,
+    "llm_score_b_to_a": 0.65,
+    "intro": "",
+    "starter_topics": ""
+   }
+  ],
+  "match_prob": [
+   [
+    0.0,
+    1.0,
+    1.0,
+    1.0
+   ],
+   [
+    1.0,
+    0.0,
+    1.0,
+    1.0
+   ],
+   [
+    1.0,
+    1.0,
+    0.0,
+    1.0
+   ],
+   [
+    1.0,
+    1.0,
+    1.0,
+    0.0
+   ]
+  ],
+  "envy_report": {
+   "left_envy_count": 0,
+   "right_envy_count": 0,
+   "total_envy": 0,
+   "left": [],
+   "right": [],
+   "b_min": 3,
+   "b_min_violations": [],
+   "b_min_satisfied": true
+  }
+ },
+ "report": {
+  "overview": {
+   "total_users": 4,
+   "total_edges": 6,
+   "average_degree": 3.0,
+   "edges_with_llm_scores": 6,
+   "edges_with_directional_scores": 6
+  },
+  "degree_distribution": {
+   "3": 4
+  },
+  "score_statistics": {
+   "final_weights": {
+    "min": 0.477,
+    "max": 0.875,
+    "avg": 0.678
+   },
+   "embedding_scores": {
+    "min": 0.477,
+    "max": 0.875,
+    "avg": 0.678
+   },
+   "llm_scores": {
+    "min": 0.35,
+    "max": 0.9,
+    "avg": 0.683
+   }
+  },
+  "users": {
+   "alice": {
+    "degree": 3,
+    "matches": [
+     {
+      "partner": "bob",
+      "weight": 0.875,
+      "directional_scores": {
+       "a_to_b": 0.85,
+       "b_to_a": 0.9
+      }
+     },
+     {
+      "partner": "carol",
+      "weight": 0.81,
+      "directional_scores": {
+       "a_to_b": 0.8,
+       "b_to_a": 0.82
+      }
+     },
+     {
+      "partner": "david",
+      "weight": 0.572,
+      "directional_scores": {
+       "a_to_b": 0.52,
+       "b_to_a": 0.63
+      }
+     }
+    ]
+   },
+   "bob": {
+    "degree": 3,
+    "matches": [
+     {
+      "partner": "alice",
+      "weight": 0.875,
+      "directional_scores": {
+       "a_to_b": 0.85,
+       "b_to_a": 0.9
+      }
+     },
+     {
+      "partner": "carol",
+      "weight": 0.825,
+      "directional_scores": {
+       "a_to_b": 0.83,
+       "b_to_a": 0.82
+      }
+     },
+     {
+      "partner": "david",
+      "weight": 0.511,
+      "directional_scores": {
+       "a_to_b": 0.45,
+       "b_to_a": 0.58
+      }
+     }
+    ]
+   },
+   "carol": {
+    "degree": 3,
+    "matches": [
+     {
+      "partner": "bob",
+      "weight": 0.825,
+      "directional_scores": {
+       "a_to_b": 0.83,
+       "b_to_a": 0.82
+      }
+     },
+     {
+      "partner": "alice",
+      "weight": 0.81,
+      "directional_scores": {
+       "a_to_b": 0.8,
+       "b_to_a": 0.82
+      }
+     },
+     {
+      "partner": "david",
+      "weight": 0.477,
+      "directional_scores": {
+       "a_to_b": 0.35,
+       "b_to_a": 0.65
+      }
+     }
+    ]
+   },
+   "david": {
+    "degree": 3,
+    "matches": [
+     {
+      "partner": "alice",
+      "weight": 0.572,
+      "directional_scores": {
+       "a_to_b": 0.52,
+       "b_to_a": 0.63
+      }
+     },
+     {
+      "partner": "bob",
+      "weight": 0.511,
+      "directional_scores": {
+       "a_to_b": 0.45,
+       "b_to_a": 0.58
+      }
+     },
+     {
+      "partner": "carol",
+      "weight": 0.477,
+      "directional_scores": {
+       "a_to_b": 0.35,
+       "b_to_a": 0.65
+      }
+     }
+    ]
+   }
+  }
+ }
+}
