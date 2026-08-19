@@ -1,0 +1,151 @@
+# ===========================================================================
+# Mutual — 项目配置
+# spec 驱动、代码可丢弃。本文件是工程层的入口（依赖、lint、type、test）。
+# 契约（schemas.py / stages.py）与参数（config/default.yaml）才是唯一真相。
+# ===========================================================================
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+# ---------------------------------------------------------------------------
+# [project] 元数据与依赖
+# 依赖引入计划见 docs/engineering-plan.md §7：
+#   Phase 0: numpy, pyyaml, pytest   （基础）
+#   Phase 1: openai                  （LLM API）
+#   Phase 2: cvxpy, torch            （FairRec NSW 求解，放 fair extras）
+# ---------------------------------------------------------------------------
+[project]
+name = "mutual"
+version = "0.1.0"
+description = "LLM 驱动的双向互惠推荐引擎（spec 驱动，代码可丢弃）"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [{ name = "Mutual Contributors" }]
+keywords = ["recommendation", "reciprocal", "llm", "matching", "fair-rec"]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+dependencies = [
+    "numpy",
+    "pyyaml",
+    "openai",
+]
+
+# 开发依赖（lint / type / test）
+# 安装: pip install -e ".[dev]"
+[project.optional-dependencies]
+dev = [
+    "pytest",
+    "ruff",
+    "mypy",
+]
+# FairRec 互惠求解依赖（Phase 2 引入，默认不安装以保持轻量）
+# 安装: pip install -e ".[fair]"
+fair = [
+    "cvxpy",
+    "torch",
+]
+
+# ---------------------------------------------------------------------------
+# src layout：wheel 只打包 src/mutual
+# ---------------------------------------------------------------------------
+[tool.hatch.build.targets.wheel]
+packages = ["src/mutual"]
+
+[tool.hatch.build.targets.sdist]
+include = [
+    "src/mutual",
+    "spec",
+    "config",
+    "data",
+    "tests",
+    "docs",
+    "README.md",
+    "CLAUDE.md",
+    "CONTRIBUTING.md",
+]
+
+# ---------------------------------------------------------------------------
+# [tool.ruff] lint 与格式化
+# line-length=100，目标 Python 3.10
+# ---------------------------------------------------------------------------
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+# 默认启用的规则集。保持与 CLAUDE.md §7 禁止事项一致。
+# 注：未启用 UP（pyupgrade）——现有代码统一采用 typing.Optional/Dict/List 风格，
+# 视为项目约定，避免对契约文件（stages.py/store.py）做语义无关的大面积注解改写。
+select = [
+    "E",    # pycodestyle errors
+    "F",    # pyflakes（含未使用导入 F401）
+    "W",    # pycodestyle warnings
+    "I",    # isort
+    "B",    # flake8-bugbear
+]
+ignore = [
+    "E501",  # 行长由 formatter 管，ruff check 不重复报
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["B011"]  # 测试中允许 assert False 等
+
+[tool.ruff.format]
+# 与 black 风格兼容的默认格式化配置
+quote-style = "double"
+indent-style = "space"
+
+# ---------------------------------------------------------------------------
+# [tool.mypy] 类型检查
+# strict=false，warn_unused_ignores=true
+# strict=false：Phase 1 骨架期逐步收紧，避免一次性阻断过多 stub。
+#
+# python_version="3.12"（而非 3.10）的原因：numpy≥2.1 的 stub 使用
+# PEP 695 `type` 语句（3.12+ 语法），mypy 以 3.10 语义解析会在
+# numpy/__init__.pyi 直接报 syntax error，导致 CI type-check 永远失败。
+# CI 运行时也是 Python 3.12（见 .github/workflows/ci.yml）。
+# ---------------------------------------------------------------------------
+[tool.mypy]
+python_version = "3.12"
+strict = false
+warn_unused_ignores = true
+warn_redundant_casts = true
+warn_return_any = false
+ignore_missing_imports = true
+# src layout
+mypy_path = "src"
+packages = ["mutual"]
+exclude = ["tests/golden/"]
+
+[[tool.mypy.overrides]]
+# numpy / cvxpy / torch 等三方库的 stub 缺失不阻断
+module = [
+    "numpy.*",
+    "yaml.*",
+    "openai.*",
+    "cvxpy.*",
+    "torch.*",
+]
+ignore_missing_imports = true
+
+# ---------------------------------------------------------------------------
+# [tool.pytest.ini_options] 测试配置
+# markers: llm 标记需要真实 LLM 的测试，默认跳过（CI 跑 -m "not llm"）
+#          手动/每周用 RUN_LLM_TESTS=1 触发（见 docs/ci-gates.md）
+# ---------------------------------------------------------------------------
+[tool.pytest.ini_options]
+minversion = "7.0"
+testpaths = ["tests"]
+pythonpath = ["src"]
+addopts = "-ra"
+markers = [
+    "llm: 需要真实 LLM 的测试（默认跳过，用 RUN_LLM_TESTS=1 启用）",
+]

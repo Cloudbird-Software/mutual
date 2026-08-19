@@ -13,16 +13,18 @@ permissions:
 
 jobs:
   hygiene:
-    uses: Cloudbird-Software/CI-Workflows/.github/workflows/hygiene.yml@v1
+    # 钉 commit hash（zizmor unpinned-uses：可变 tag 不算钉住，ADR-0021）：
+    # hash 即 CI-Workflows v1.3.1 tag 指向，升级 v1 须同步换 hash
+    uses: Cloudbird-Software/CI-Workflows/.github/workflows/hygiene.yml@9c20d43d60e9f9d1438f171aeee8e4dbdf02c08b # v1.3.1
 
   deps-audit:
     # push 面依赖审计（ADR-0021，红队 #11-C）：dependency-review 只支持 PR 事件（比对
     # base↔head），直推 main 时 deps job 被 skip 而 gate 判绿——push 面零校验。
     # 直推本应只有破玻璃（§8 后验），但"跳过=通过"的 gate 语义是声明性漏洞：
-    # push 用 lockfile 审计兜底（npm audit 只读 registry 元数据，无新 action 依赖）。
+    # push 用 lockfile 审计兜底（pip-audit 只读 registry 元数据，无新 action 依赖）。
     if: github.event_name == 'push'
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -30,23 +32,28 @@ jobs:
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: "3.12"
-      - name: npm audit（lockfile 高危阻断）
+      - uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
+        with:
+          version: "0.12.5"
+      - name: 核心锁面审计（uv.lock，零容忍）
         run: |
-          # 只装 npm（runner 预装）；审计 prod+dev 依赖的 high/critical
-          npm audit --package-lock-only --audit-level=high
+          uv lock --check
+          uv export --all-extras --format requirements-txt --output-file /tmp/req.txt --no-hashes
+          pipx install pip-audit
+          pip-audit --requirement /tmp/req.txt --skip-editable
 
   check:
-    uses: Cloudbird-Software/CI-Workflows/.github/workflows/check.yml@v1
+    uses: Cloudbird-Software/CI-Workflows/.github/workflows/check.yml@9c20d43d60e9f9d1438f171aeee8e4dbdf02c08b # v1.3.1
     with:
-      runtime: node
-      node-version: "24"
+      runtime: python
+      python-version: "3.12"
 
   deps:
     if: github.event_name == 'pull_request'
     permissions:
       contents: read
       pull-requests: write
-    uses: Cloudbird-Software/CI-Workflows/.github/workflows/dep-review.yml@v1
+    uses: Cloudbird-Software/CI-Workflows/.github/workflows/dep-review.yml@9c20d43d60e9f9d1438f171aeee8e4dbdf02c08b # v1.3.1
 
   adr-required:
     # C1 脚手架面（ADR-0021，GOVERNANCE C1 scope）：供应链入口文件变更须引用 ADR。

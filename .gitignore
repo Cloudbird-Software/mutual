@@ -1,9 +1,25 @@
-node_modules/
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
 dist/
-coverage/
-reports/
-.env
-.env.*
-!.env.example
-*.log
-.DS_Store
+build/
+
+# Caches
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+
+# Environments
+.venv/
+venv/
+
+# IDE
+.vscode/
+.idea/
+
+# Data (runtime artifacts, not fixtures)
+# 用 data/* 而非 data/：目录本身不被忽略，子目录例外才能生效
+data/*
+!data/bench/
+*.db

@@ -1,0 +1,115 @@
+{
+  "scenario": "cold",
+  "description": "冷启动：8 个全新 member 无任何打分历史，系统只能依赖画像文本的 embedding 相似度（embedding_only 信号），黄金对 = 真实语义相近的画像。",
+  "embedding_only": true,
+  "members": {
+    "cm0": {
+      "needs": "need beekeeping mentor for urban hive sensors",
+      "project": "rooftop apiary iot monitoring",
+      "skills": "carpentry soldering community outreach",
+      "vision": "pollinator friendly cities"
+    },
+    "cm1": {
+      "needs": "need choir arranger for bilingual community concert",
+      "project": "neighborhood winter concert series",
+      "skills": "event logistics fundraising sound equipment",
+      "vision": "music as neighborhood glue"
+    },
+    "cm2": {
+      "needs": "need trail cartographer for regional hiking guide",
+      "project": "accessible trail guidebook update",
+      "skills": "photography first aid volunteer coordination",
+      "vision": "outdoors open to all abilities"
+    },
+    "cm3": {
+      "needs": "need retro hardware restorer for museum computing lab",
+      "project": "1980s microcomputer teaching collection",
+      "skills": "docent training archive cataloging",
+      "vision": "computing history people can touch"
+    },
+    "cm4": {
+      "needs": "need sign language curriculum designer for cafe staff",
+      "project": "inclusive cafe service training",
+      "skills": "hospitality scheduling budgeting",
+      "vision": "deaf friendly third places"
+    },
+    "cm5": {
+      "needs": "need seed library coordinator for county extension",
+      "project": "heirloom seed lending library",
+      "skills": "gardening workshops data entry outreach",
+      "vision": "food sovereignty neighborhood scale"
+    },
+    "cm6": {
+      "needs": "need repair cafe coordinator for tool donations",
+      "project": "weekend repair cafe circuit",
+      "skills": "tool repair volunteering logistics",
+      "vision": "right to repair in every district"
+    },
+    "cm7": {
+      "needs": "need night market vendor liaison for street food pilot",
+      "project": "weekend night market permits",
+      "skills": "vendor relations permits safety training",
+      "vision": "street food as cultural infrastructure"
+    }
+  },
+  "pool": {
+    "cp0": {
+      "needs": "seeking community projects with sensor needs",
+      "project": "urban beekeeping sensor kits",
+      "skills": "beekeeping urban hives iot sensors pollinator habitat",
+      "vision": "pollinator friendly cities"
+    },
+    "cp1": {
+      "needs": "looking for community ensembles to arrange for",
+      "project": "bilingual choral arrangements catalog",
+      "skills": "choir arranging bilingual lyrics community conducting",
+      "vision": "music as neighborhood glue"
+    },
+    "cp2": {
+      "needs": "want regional guides needing map refresh",
+      "project": "trail cartography access audits",
+      "skills": "trail cartography gps mapping hiking accessibility",
+      "vision": "outdoors open to all abilities"
+    },
+    "cp3": {
+      "needs": "seeking institutions with retro collections",
+      "project": "microcomputer restoration clinic",
+      "skills": "retro hardware restoration museum computing 1980s micros",
+      "vision": "computing history people can touch"
+    },
+    "cp4": {
+      "needs": "seeking hospitality teams wanting inclusive service",
+      "project": "sign language service curriculum pilot",
+      "skills": "sign language curriculum design deaf culture training",
+      "vision": "deaf friendly third places"
+    },
+    "cp5": {
+      "needs": "want gardening networks to swap varieties",
+      "project": "seed library coordination manual",
+      "skills": "seed library heirloom varieties gardening extension",
+      "vision": "food sovereignty neighborhood scale"
+    },
+    "cp6": {
+      "needs": "seeking fixers and tool donors",
+      "project": "repair cafe playbook and toolkit",
+      "skills": "repair cafe tool donations coordination reuse",
+      "vision": "right to repair in every district"
+    },
+    "cp7": {
+      "needs": "seeking city pilots for street vending",
+      "project": "night market operations research",
+      "skills": "night market vendor liaison street food permits",
+      "vision": "street food as cultural infrastructure"
+    }
+  },
+  "ground_truth": {
+    "cm0": "cp0",
+    "cm1": "cp1",
+    "cm2": "cp2",
+    "cm3": "cp3",
+    "cm4": "cp4",
+    "cm5": "cp5",
+    "cm6": "cp6",
+    "cm7": "cp7"
+  }
+}

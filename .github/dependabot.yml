@@ -7,7 +7,7 @@ updates:
       actions:
         patterns: ["*"]
         cooldown-days: 7
-  - package-ecosystem: npm
+  - package-ecosystem: pip
     directory: "/"
     schedule: { interval: weekly }
     open-pull-requests-limit: 5
@@ -17,7 +17,6 @@ updates:
         update-types: ["minor", "patch"]
         cooldown-days: 7
     ignore:
-      # TS 7 与 typescript-eslint（peer <6.1.0）不兼容，npm ci 直接失败。
-      # 工具链支持后删除此规则重新升级。见 PR #1。
-      - dependency-name: typescript
+      # numpy 2.x 大版本升级涉及 API 兼容（golden fixtures 数值路径），留人审。
+      - dependency-name: numpy
         update-types: ["version-update:semver-major"]

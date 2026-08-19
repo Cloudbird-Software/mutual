@@ -1,0 +1,15 @@
+{
+  "market_config": {
+    "num_left": 30,
+    "num_right": 20,
+    "pref_seed": 0
+  },
+  "expected": {
+    "total_matches": 20,
+    "envy_count_left": 0,
+    "envy_count_right": 0,
+    "min_match_prob": 0.0,
+    "max_match_prob": 1.0
+  },
+  "note": "FairRec Market.generate_preferences(pref_seed=0) 的确定性输出。nsw_maximize 求解后 envy 应为 0。"
+}
