@@ -65,8 +65,10 @@ def test_check_envy_uses_full_match_sets():
 
     # own-best 语义：u0 的最优匹配 0.9 高于任何人 bundle 中的 0.8 → 无 envy
     assert envy["total_envy"] == 0, f"误报 envy: {envy}"
-    # 独立入口与 solve_match 内嵌报告一致
-    assert check_envy(pm, match_prob) == envy
+    # 独立入口与 solve_match 内嵌报告一致（solve_match 报告额外含 b_min
+    # 可行性字段，比较时取 envy 键子集）
+    standalone = check_envy(pm, match_prob)
+    assert {k: envy[k] for k in standalone} == standalone
 
     # evaluate 与 check_envy 对同一 match_prob 必须一致
     report = evaluate([["x"]], ["x"], pm, match_prob)
@@ -225,3 +227,77 @@ def test_batch_mode_pool_side_unbounded(monkeypatch, fake_llm, config):
     assert (edge.user1, edge.user2) == ("carol", "bob")
     assert edge.llm_score_a_to_b == pytest.approx(0.82, abs=1e-6)  # carol→bob
     assert edge.llm_score_b_to_a == pytest.approx(0.83, abs=1e-6)  # bob→carol
+
+
+# ---------------------------------------------------------------------------
+# 5. b_min 显式可行性报告（qodo #9：下界不可满足时报告，不静默）
+# ---------------------------------------------------------------------------
+
+
+def test_b_min_violations_reported_on_sparse_market():
+    """qodo #9：稀疏市场 member 无法达到 b_min → 显式报告违约名单。
+
+    C 只有一个正 NSW 候选（P2），b_min=2 不可满足 → C 进 violations；
+    A、B 各有两条可行边 → 不违约。报告 shape 稳定（b_min/violations/satisfied）。
+    """
+    left = ["A", "B", "C"]
+    right = ["P1", "P2"]
+    # C 只对 P2 有正偏好，且 P2 对 C 正向 → C 仅有 1 条正 NSW 边
+    pref_lr = [
+        [0.9, 0.5],  # A
+        [0.8, 0.6],  # B
+        [0.0, 0.7],  # C：P1 无分
+    ]
+    pref_rl = [
+        [0.9, 0.8, 0.0],  # P1 对 C 无分 → C-P1 NSW = 0
+        [0.5, 0.6, 0.7],
+    ]
+    pm = _bipartite(left, right, pref_lr, pref_rl)
+
+    edges, _mp, report = solve_match(pm, {"b_max": 2, "b_min": 2}, _BLEND)
+
+    assert report["b_min"] == 2
+    assert report["b_min_violations"] == ["C"], f"违约名单错误: {report}"
+    assert report["b_min_satisfied"] is False
+    # C 的唯一可行边确实被匹配（上界贪心正常工作，只是下界不可满足）
+    assert any({e.user1, e.user2} == {"C", "P2"} for e in edges)
+
+
+def test_b_min_satisfied_on_dense_market():
+    """稠密市场人人可达 b_min → satisfied=True，violations 为空。"""
+    ids = ["u0", "u1", "u2", "u3"]
+    pref = [
+        [0.0, 0.9, 0.8, 0.7],
+        [0.9, 0.0, 0.7, 0.8],
+        [0.8, 0.7, 0.0, 0.9],
+        [0.7, 0.8, 0.9, 0.0],
+    ]
+    pm = _square(ids, pref)
+
+    _edges, _mp, report = solve_match(pm, {"b_max": 3, "b_min": 2}, _BLEND)
+
+    assert report["b_min_satisfied"] is True
+    assert report["b_min_violations"] == []
+    assert report["b_min"] == 2
+
+
+def test_b_min_zero_disables_lower_bound_check():
+    """b_min=0（默认）→ 永不违约；报告字段仍存在（shape 稳定）。"""
+    pm = _square(["u0", "u1"], [[0.0, 0.9], [0.9, 0.0]])
+    _edges, _mp, report = solve_match(pm, {"b_max": 1, "b_min": 0}, _BLEND)
+    assert report["b_min_satisfied"] is True
+    assert report["b_min_violations"] == []
+
+
+def test_b_min_violations_on_empty_right_side():
+    """M>0、N=0 的退化市场：全员违约，显式报告而非静默空匹配。"""
+    pm = PrefMatrix(
+        left_ids=["A"],
+        right_ids=[],
+        pref_left_to_right=np.zeros((1, 0)),
+        pref_right_to_left=np.zeros((0, 1)),
+    )
+    edges, _mp, report = solve_match(pm, {"b_max": 2, "b_min": 1}, _BLEND)
+    assert edges == []
+    assert report["b_min_violations"] == ["A"]
+    assert report["b_min_satisfied"] is False

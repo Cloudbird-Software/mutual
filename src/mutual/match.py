@@ -15,9 +15,12 @@
   双方；``match_prob`` 对称存储。
 - §3 未打分候选保留 embedding 权重（在 score 阶段已归一化，此处用偏好矩阵兜底）。
 
-已知限制：
-- ``b_min``（每人最少匹配数）暂不强制——spec §7 只定义约束的绑定侧，
-  下界强制需要最小度 b-matching（可行性依赖图密度），当前只做上界贪心。
+``b_min``（每人最少匹配数，qodo #9）：下界强制需要最小度 b-matching，
+可行性依赖候选图密度（稀疏市场/novelty 排除后可能无解）。本求解器不静默
+假装满足——贪心后做**显式可行性检查**，报告 ``b_min_violations``
+（度数不足的 member id 列表）与 ``b_min_satisfied``，由调用方决定
+（继续运行 / 报警 / 门禁阻断）。上界贪心保证不超 ``b_max``；下界
+不可满足时**显式报告**，绝不静默吞掉。
 
 说明：match 阶段只见 ``PrefMatrix``（无独立可分离的 embed/llm 分），因此
 边的 ``final_weight`` 取 **NSW 分数**，``embed_score``/``llm_score`` 字段
@@ -46,8 +49,9 @@ def solve_match(
 
     Args:
         pref_matrix: 双向偏好矩阵（left→right 与 right→left）。
-        matching_config: 度约束（``b_max``/``pool_b_max``；``b_min`` 下界
-            暂不强制，见模块 docstring「已知限制」）。
+        matching_config: 度约束（``b_max``/``pool_b_max`` 上界贪心强制；
+            ``b_min`` 下界显式可行性检查——不可满足时报告
+            ``b_min_violations``，不静默，见模块 docstring）。
         blending_config: 混合权重（``embed_weight``/``llm_weight``）。
         reference_scores: 可选参考分数线；由 score 阶段消费，此处透传。
 
@@ -56,12 +60,17 @@ def solve_match(
         - 匹配边（按 ``(-final_weight, pair_id)`` 排序）；
         - 匹配概率矩阵（确定性匹配 → 0/1，shape ``[M, N]``；
           同集（无向）匹配对称存储 ``prob[i,j] == prob[j,i]``）；
-        - envy 报告（``left_envy_count``/``right_envy_count``/``total_envy``/``left``/``right``）。
+        - envy 报告（``left_envy_count``/``right_envy_count``/``total_envy``/
+          ``left``/``right``）+ ``b_min`` 可行性字段
+          （``b_min``/``b_min_violations``/``b_min_satisfied``）。
     """
     M = len(pref_matrix.left_ids)
     N = len(pref_matrix.right_ids)
+    b_min = max(0, _to_int(matching_config.get("b_min"), 0))
     if M == 0 or N == 0:
-        return [], np.zeros((M, N), dtype=int), _empty_envy()
+        report = _empty_envy()
+        _attach_b_min_report(report, pref_matrix, np.zeros((M, N), dtype=int), b_min)
+        return [], np.zeros((M, N), dtype=int), report
 
     b_max = _to_int(matching_config.get("b_max"), 0)
     pool_b_max = matching_config.get("pool_b_max")
@@ -118,6 +127,7 @@ def solve_match(
 
     edges = _build_edges(pref_matrix, matched_pairs, w_embed, w_llm)
     envy_report = check_envy(pref_matrix, match_prob)
+    _attach_b_min_report(envy_report, pref_matrix, match_prob, b_min)
     return edges, match_prob, envy_report
 
 
@@ -239,6 +249,38 @@ def _empty_envy() -> dict:
         "left": [],
         "right": [],
     }
+
+
+def _attach_b_min_report(
+    report: dict,
+    pref_matrix: PrefMatrix,
+    match_prob: np.ndarray,
+    b_min: int,
+) -> None:
+    """把 ``b_min`` 可行性字段附加进报告（qodo #9，原地修改）。
+
+    度数口径：member 侧 = 左节点（二部图）或全部节点（同集无向图，
+    此时所有节点都是 member，度数按 ``match_prob`` 行和计——对称存储下
+    行和即总度数）。
+
+    ``b_min <= 0`` 时不启用（报告仍写入 ``b_min`` 值与空 violations，
+    保持报告 shape 稳定，便于下游消费）。
+    """
+    M = len(pref_matrix.left_ids)
+    N = len(pref_matrix.right_ids)
+    same_set = list(pref_matrix.left_ids) == list(pref_matrix.right_ids)
+
+    if same_set:
+        degrees = {pref_matrix.left_ids[i]: int(match_prob[i].sum()) for i in range(M)}
+    else:
+        degrees = {
+            pref_matrix.left_ids[i]: int(match_prob[i, :].sum()) for i in range(M)
+        }
+    # N == 0 时 match_prob 形状 [M, 0]，行和为 0——全部 member 违约，正确。
+    violations = [uid for uid, deg in degrees.items() if deg < b_min]
+    report["b_min"] = b_min
+    report["b_min_violations"] = violations
+    report["b_min_satisfied"] = not violations
 
 
 def _to_int(value: Any, default: int) -> int:
