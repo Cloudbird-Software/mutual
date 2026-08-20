@@ -1,0 +1,17 @@
+{
+  "id": "HT-05",
+  "title": "单向高互惠：A 极想见 B，B 明确排除 A",
+  "intent": "互惠折扣：单向热情不得成交；方向性必须被保持（禁止对称化）",
+  "profiles": {
+    "A": "pre-revenue 初创创始人，做宠物智能用品，原型刚出。最想认识的是有连锁宠物门店资源的渠道方，只要能谈，任何条件都愿意聊，非常渴望。",
+    "B": "连锁宠物门店渠道总监，覆盖 200 家门店。规则明确：不见 pre-revenue 公司（deal-breaker），只接已有稳定月销的品牌。"
+  },
+  "assertions": [
+    {"type": "level_ge", "focal": "A", "counterpart": "B", "min": 3,
+     "why": "A→B 单向意愿极高，应如实打高（不惩罚热情本身）"},
+    {"type": "eligible", "focal": "B", "counterpart": "A", "expected": false,
+     "why": "A 是 pre-revenue，命中 B 的 deal-breaker"},
+    {"type": "not_matched", "pair": ["A", "B"],
+     "why": "单向高 + 双向 eligible 不成立 → 不得成交（互惠折扣语义）"}
+  ]
+}
