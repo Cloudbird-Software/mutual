@@ -1,0 +1,15 @@
+{
+  "id": "HT-12",
+  "title": "规模/阶段硬约束的词面陷阱",
+  "intent": "阶段硬约束优先于词面契合：pre-revenue 对学生项目 vs B 轮后机构要求",
+  "profiles": {
+    "A": "成长期消费品牌 COO，B 轮。找供应链金融服务方，硬约束：资金方必须是 B 轮以后的机构或持牌金融机构（合规要求，无例外）。",
+    "B": "大学生创业项目，做供应链金融信息撮合平台，pre-revenue，团队是在读研究生。产品 Demo 已上线，撮合逻辑与成长期品牌的账期需求高度契合，词面上完全对标品牌方供应链金融场景。"
+  },
+  "assertions": [
+    {"type": "eligible", "focal": "A", "counterpart": "B", "expected": false,
+     "why": "B 是 pre-revenue 学生团队，违反 A 的机构阶段硬约束，词面再契合也必须否决"},
+    {"type": "not_matched", "pair": ["A", "B"],
+     "why": "违反硬约束 → 不得成交"}
+  ]
+}
