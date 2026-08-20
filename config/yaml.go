@@ -115,6 +115,10 @@ func parseBlock(lines []rawLine, start, indent int) (any, int, error) {
 			return nil, i, fmt.Errorf("yaml: 第 %d 行不是 key: value 形式: %q", ln.num, ln.text)
 		}
 		key = unquote(key)
+		if key == "" {
+			// 空键（":\n" / ": v" 形态）是语法错误——fuzz 发现此前静默产出 map[""]
+			return nil, i, fmt.Errorf("yaml: 第 %d 行键为空", ln.num)
+		}
 		if rest == "" {
 			// 值为空：嵌套块（更深缩进）或 null。
 			if i+1 < len(lines) && lines[i+1].indent > indent {
