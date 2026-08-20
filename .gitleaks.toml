@@ -1,0 +1,15 @@
+# gitleaks 配置：默认规则全量保留 + holdout 冻结套件误报白名单。
+#
+# holdout/manifest.json 是人类 owner 冻结的 sha256 完整性清单（"文件名": "64 位 hex"
+# 键值对），被 generic-api-key 规则误判为密钥（2026-08-20 曾阻塞全部开放 PR 的
+# hygiene job）。仅按路径放行清单文件本身：这些文件受 CODEOWNERS 管控且内容由
+# manifest_test.go 常驻校验，真实密钥混入其它文件不受此白名单影响。
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "holdout sha256 完整性清单（文件哈希，非密钥）"
+paths = [
+    '(^|/)holdout/manifest\.json$',
+    '(^|/)tests/holdout/manifest\.json$',
+]
