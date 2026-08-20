@@ -19,6 +19,7 @@ Mutual 是一个 **LLM 驱动的双向互惠推荐引擎**。核心范式：**sp
 5. **不硬编码参数**。所有可调参数从 `config/default.yaml` 读取。
 6. **不引入新依赖**。除非 spec 明确要求。当前 Go 依赖保持最小（见 `go.mod`）。
 7. **prompt 契约变更走 BAML**。改 `baml_src/*.baml` → `make baml-generate` → 同步 `golden/baml/` 快照，三者在同一 PR 评审。
+8. **holdout/ 对实现/优化 agent 不可见**。禁止阅读 `holdout/` 内容（其 README 除外）；默认 `go test` 自动 skip，仅波次 gate 由人类以 `MUTUAL_HOLDOUT=1` 运行；完整性由 `holdout/manifest_test.go` 常驻 CI 校验（规则见 `docs/workplan-issue7.md` §5.4）。
 
 ## 3. 目录结构（Go+BAML 唯一实现面，ADR-0027）
 
