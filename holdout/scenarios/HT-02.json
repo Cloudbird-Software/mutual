@@ -1,0 +1,13 @@
+{
+  "id": "HT-02",
+  "title": "需求全 implied 且跨语言的 needle",
+  "intent": "隐含需求 + 跨语言：语义等价但字面零重叠的高互惠对必须被识别",
+  "profiles": {
+    "A": "我们做中式即食汤品，线上起量不错，最近最头疼的是新品铺货——线下渠道一直打不开，商超采购的门槛摸不着门道，团队里没人干过这个。",
+    "B": "We run retail execution for emerging food brands: 300 KA doors in East China, slotting-fee negotiation, and in-store display programs. New brand onboarding starts this month."
+  },
+  "assertions": [
+    {"type": "level_ge", "focal": "A", "counterpart": "B", "min": 3,
+     "why": "A 的需求完全隐含（没说'渠道'二字）且 B 用英文表达，仍是高互惠 needle，level 应 ≥3"}
+  ]
+}

@@ -1,0 +1,18 @@
+{
+  "id": "HT-04",
+  "title": "词面双胞胎但违反硬约束",
+  "intent": "硬约束优先：词面再像，违反硬约束必须 eligible=false 且给出正确 reason",
+  "profiles": {
+    "A": "新消费品牌渠道负责人。寻找线下 KA 进场执行团队，华东优先，本月启动。硬约束：合作方必须在中国大陆有实体团队（合规与驻场要求，不接受远程/跨境交付）。",
+    "B": "We help consumer brands enter KA retail in East China: slotting negotiation, display execution, 300 doors coverage. Based in Singapore, fully remote delivery, no mainland China entity."
+  },
+  "assertions": [
+    {"type": "eligible", "focal": "A", "counterpart": "B", "expected": false,
+     "why": "B 无大陆实体，直接违反 A 的显式硬约束"},
+    {"type": "reason_contains", "focal": "A", "counterpart": "B",
+     "keywords": ["region", "地区", "实体", "hard", "constraint", "地域"],
+     "why": "reason_code 必须指向地域/实体类硬约束"},
+    {"type": "not_matched", "pair": ["A", "B"],
+     "why": "违反硬约束的对子不得进入最终匹配"}
+  ]
+}

@@ -2,11 +2,19 @@
   "version": 1,
   "policy": "holdout/ 冻结件；改动需人类 owner 批准（CODEOWNERS，.github#104）",
   "author": "holdout-author (non-implementer)",
-  "updated_at": "2026-08-20T04:56:28Z",
+  "updated_at": "2026-08-20T04:56:56Z",
   "files": {
     "README.md": "83ba8c2d10b4711b57f72060a84484d9e9e2013065fbfcfe39c78b94b7403e45",
     "api.go": "1a0ff7e233ab66b107479bd346261250673eba4136bfe0e82b8e363bde06dab2",
     "gate_test.go": "8a85b66012ddc7ebeb9c993bc16fb59902fb2d1f01b86adfb06507a3ad42bc36",
-    "manifest_test.go": "0c0bfcda7194fcab86569e85be6ce8f6aced0cfefb067093ad17050c8c510ebe"
+    "manifest_test.go": "0c0bfcda7194fcab86569e85be6ce8f6aced0cfefb067093ad17050c8c510ebe",
+    "mt_hidden_test.go": "d47aaaf2cd229e04497b2d38cd36ad023f1b06c08712082cdee2887501781a28",
+    "scenarios/HT-01.json": "cf458d29595a216f94983dc7f4e11c69dc6f9e257b018244d1b2323c5d2cfa12",
+    "scenarios/HT-02.json": "5f13885cbde93a000d81a44b231dbc7e442a5de60115e17effdd5d9f06f92216",
+    "scenarios/HT-03.json": "8c2f408c3a764dc98868fd0b7120cbcc0969bd52c3f43e6c8af8275a034c456b",
+    "scenarios/HT-04.json": "e6fc6ff7236743c20c1a75b68f7d48644fd8618b1efd437eb54b7956e33668b5",
+    "scenarios/HT-05.json": "e78fa7ca24efb91d5c2479174d09ca27cde36ccfd833d6a729b08e1b37bfccf1",
+    "scenarios/HT-06.json": "75647378a9be67b95e8564c52dfe1f7ce40f3b84eb55f450e13faeafbfdc9e5c",
+    "scenarios_test.go": "376a3879615f8efd72e1789bb5d17b7e6330cc17bc669cfc38ea8bc1e5f79b73"
   }
 }
