@@ -2,11 +2,12 @@
   "version": 1,
   "policy": "holdout/ 冻结件；改动需人类 owner 批准（CODEOWNERS，.github#104）",
   "author": "holdout-author (non-implementer)",
-  "updated_at": "2026-08-20T04:56:28Z",
+  "updated_at": "2026-08-20T04:56:50Z",
   "files": {
     "README.md": "83ba8c2d10b4711b57f72060a84484d9e9e2013065fbfcfe39c78b94b7403e45",
     "api.go": "1a0ff7e233ab66b107479bd346261250673eba4136bfe0e82b8e363bde06dab2",
     "gate_test.go": "8a85b66012ddc7ebeb9c993bc16fb59902fb2d1f01b86adfb06507a3ad42bc36",
-    "manifest_test.go": "0c0bfcda7194fcab86569e85be6ce8f6aced0cfefb067093ad17050c8c510ebe"
+    "manifest_test.go": "0c0bfcda7194fcab86569e85be6ce8f6aced0cfefb067093ad17050c8c510ebe",
+    "mt_hidden_test.go": "d47aaaf2cd229e04497b2d38cd36ad023f1b06c08712082cdee2887501781a28"
   }
 }
