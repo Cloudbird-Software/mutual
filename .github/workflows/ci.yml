@@ -15,7 +15,7 @@ jobs:
   hygiene:
     # 钉 commit hash（zizmor unpinned-uses：可变 tag 不算钉住，ADR-0021）：
     # hash 即 CI-Workflows v1.3.1 tag 指向，升级 v1 须同步换 hash
-    uses: Cloudbird-Software/CI-Workflows/.github/workflows/hygiene.yml@9c20d43d60e9f9d1438f171aeee8e4dbdf02c08b # v1.3.1
+    uses: Cloudbird-Software/CI-Workflows/.github/workflows/hygiene.yml@81f5457b33a38c2b11221be06a47e1fb14e524e8 # v1.3.1
 
   deps-audit:
     # push 面依赖审计（ADR-0021，红队 #11-C）：dependency-review 只支持 PR 事件（比对
@@ -48,8 +48,9 @@ jobs:
   # 的 runtime: go（make setup=go mod download / make check=vet+archlint+
   # test+evaluate 门禁）。golden 差分对拍随 go test 全量执行。
   check:
-    uses: Cloudbird-Software/CI-Workflows/.github/workflows/check.yml@9c20d43d60e9f9d1438f171aeee8e4dbdf02c08b # v1.3.1
+    uses: Cloudbird-Software/CI-Workflows/.github/workflows/check.yml@81f5457b33a38c2b11221be06a47e1fb14e524e8 # v1.3.1
     with:
+      ciw-ref: 81f5457b33a38c2b11221be06a47e1fb14e524e8
       runtime: go
       go-version: "1.25.13"
 
@@ -58,7 +59,9 @@ jobs:
     permissions:
       contents: read
       pull-requests: write
-    uses: Cloudbird-Software/CI-Workflows/.github/workflows/dep-review.yml@9c20d43d60e9f9d1438f171aeee8e4dbdf02c08b # v1.3.1
+    uses: Cloudbird-Software/CI-Workflows/.github/workflows/dep-review.yml@81f5457b33a38c2b11221be06a47e1fb14e524e8 # v1.3.1
+    with:
+      ciw-ref: 81f5457b33a38c2b11221be06a47e1fb14e524e8
 
   adr-required:
     # C1 脚手架面（ADR-0021，GOVERNANCE C1 scope）：供应链入口文件变更须引用 ADR。
@@ -115,11 +118,20 @@ jobs:
           done
           exit $MISSING
 
+  suppression-budget:
+    # P2-2 抑制标记预算门（ADR-0036 / .github #87）：净增 ≤3/PR + 合入树总量棘轮
+    # + ADR 逃生门。独立 reusable（v1.5.1 内嵌 check.yml 实测触发平台 action 解析
+    # 故障，v1.5.3 起独立文件——ADR-0036 修订）。非 PR 事件 n/a-success（无需
+    # EXPECTED_SKIP 登记）。
+    uses: Cloudbird-Software/CI-Workflows/.github/workflows/suppression-gate.yml@81f5457b33a38c2b11221be06a47e1fb14e524e8
+    with:
+      detector-ref: 81f5457b33a38c2b11221be06a47e1fb14e524e8
+
   gate:
     # 不访问仓库内容与 GitHub API：显式零权限（最小权限原则，CodeRabbit）。
     permissions: {}
     if: always()
-    needs: [hygiene, check, deps, deps-audit, adr-required]
+    needs: [hygiene, check, deps, deps-audit, adr-required, suppression-budget]
     runs-on: ubuntu-latest
     steps:
       - name: All required jobs green?
