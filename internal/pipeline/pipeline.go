@@ -17,6 +17,7 @@ package pipeline
 
 import (
 	"fmt"
+	"slices"
 
 	"github.com/Cloudbird-Software/mutual/config"
 	"github.com/Cloudbird-Software/mutual/internal/domain"
@@ -298,7 +299,9 @@ func RunBatchMatch(in BatchMatchInput, cfg *config.Config, deps Deps) (*BatchMat
 			excludedIDs = append(excludedIDs, pid)
 		}
 	}
-	sortPairIDs(excludedIDs)
+	// 字典序排序（ExcludedPairIDs 的确定性输出；元素来自 map 键，
+	// 互不相同 → 全序，标准排序与手写插入序结果逐位一致）。
+	slices.Sort(excludedIDs)
 
 	poolIDs := append([]domain.UserID(nil), in.PoolBundle.UserIDs...)
 	return &BatchMatchResult{
@@ -577,13 +580,4 @@ func intPtrIfPositive(n int) *int {
 		return nil
 	}
 	return &n
-}
-
-// sortPairIDs 字典序排序（ExcludedPairIDs 的确定性输出）。
-func sortPairIDs(ids []domain.PairID) {
-	for i := 1; i < len(ids); i++ {
-		for j := i; j > 0 && ids[j] < ids[j-1]; j-- {
-			ids[j], ids[j-1] = ids[j-1], ids[j]
-		}
-	}
 }

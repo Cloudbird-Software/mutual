@@ -114,18 +114,10 @@ func buildIntroPrompt(
 }
 
 // parseIntroResponse 解析 {"intro": str, "starter_topics": str}；
-// 失败返回 nil（走 fallback）。容忍 markdown 代码围栏与前后噪声。
+// 失败返回 nil（走 fallback）。容忍 markdown 代码围栏与前后噪声
+// （与打分响应同一 stripMarkdownFence 前处理）。
 func parseIntroResponse(text string) *introPayload {
-	s := strings.TrimSpace(text)
-	if strings.HasPrefix(s, "```") {
-		if i := strings.IndexByte(s, '\n'); i != -1 {
-			s = s[i+1:]
-		}
-		s = strings.TrimRight(s, " \t\r\n")
-		s = strings.TrimSuffix(s, "```")
-		s = strings.TrimRight(s, " \t\r\n")
-	}
-	obj := loadsIntroJSON(s)
+	obj := loadsIntroJSON(stripMarkdownFence(text))
 	if obj == nil {
 		return nil
 	}

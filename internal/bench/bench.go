@@ -25,6 +25,7 @@ import (
 	"math"
 	"os"
 	"path/filepath"
+	"sort"
 
 	"github.com/Cloudbird-Software/mutual/internal/domain"
 	"github.com/Cloudbird-Software/mutual/internal/engine"
@@ -244,13 +245,12 @@ func rankedByLeft(edges []domain.Edge, leftIDs []domain.UserID, truth map[domain
 }
 
 // sortEdgesReverse 按 (final_weight desc, partner_id desc) 排序
-// （Python tuple 逆序语义）。
+// （Python tuple 逆序语义）。稳定排序保留同键输入序——与原插入排序
+// 及 Python sorted(reverse=True) 的稳定语义一致。
 func sortEdgesReverse(entries []domain.Edge) {
-	for i := 1; i < len(entries); i++ {
-		for j := i; j > 0 && edgeGreater(entries[j], entries[j-1]); j-- {
-			entries[j], entries[j-1] = entries[j-1], entries[j]
-		}
-	}
+	sort.SliceStable(entries, func(i, j int) bool {
+		return edgeGreater(entries[i], entries[j])
+	})
 }
 
 func edgeGreater(a, b domain.Edge) bool {
