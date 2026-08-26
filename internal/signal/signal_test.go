@@ -2,6 +2,7 @@ package signal
 
 import (
 	"encoding/json"
+	"math"
 	"strings"
 	"testing"
 
@@ -264,5 +265,54 @@ func TestDomainHashTextStable(t *testing.T) {
 	}
 	if domain.HashText("a") == domain.HashText("b") {
 		t.Fatal("HashText 应区分不同文本")
+	}
+}
+
+// TestScoreMatrixBlendedZeroParity embedW=0 时与 ScoreMatrix 逐位一致
+// （零值兼容契约：blending 选项不得扰动现行 golden 语义）。
+func TestScoreMatrixBlendedZeroParity(t *testing.T) {
+	members := []OrderedSections{
+		{ID: "m0", Sections: map[string]string{"needs": "rust audit", "skills": "tokio", "vision": "infra"}},
+		{ID: "m1", Sections: map[string]string{"needs": "react a11y", "skills": "figma", "vision": "tools"}},
+	}
+	pool := []OrderedSections{
+		{ID: "p0", Sections: map[string]string{"needs": "clients", "skills": "rust blockchain", "vision": "infra"}},
+	}
+	base := ScoreMatrix(members, pool, 7, 0.24, false)
+	got := ScoreMatrixBlended(members, pool, 7, 0.24, 0, 1)
+	for m, row := range base {
+		for p, want := range row {
+			if got[m][p] != want {
+				t.Fatalf("embedW=0 失配 %s×%s: got %+v want %+v", m, p, got[m][p], want)
+			}
+		}
+	}
+}
+
+// TestScoreMatrixBlendedMath 1×1 显式核算：pref = clamp(w_e·noisy(embed) +
+// w_l·noisy(dir))，方向流与 ScoreMatrix 一致、embed 流独立（seed+777777）。
+func TestScoreMatrixBlendedMath(t *testing.T) {
+	mem := OrderedSections{ID: "m", Sections: map[string]string{
+		"needs": "kubernetes cost", "skills": "devops", "vision": "cloud"}}
+	pl := OrderedSections{ID: "p", Sections: map[string]string{
+		"needs": "teams", "skills": "kubernetes finops terraform", "vision": "cloud"}}
+	const noise = 0.2
+	base := ScoreMatrix([]OrderedSections{mem}, []OrderedSections{pl}, 42, noise, false)
+
+	rsE := rng.New(uint32(uint32(42) + 777777))
+	embedNoisy := Noisy(EmbedScore(mem.Sections, pl.Sections), rsE, noise)
+
+	const we, wl = 0.35, 0.65
+	got := ScoreMatrixBlended([]OrderedSections{mem}, []OrderedSections{pl}, 42, noise, we, wl)
+	clamp := func(v float64) float64 {
+		return math.Max(0, math.Min(1, v))
+	}
+	wantAToB := clamp(we*embedNoisy + wl*base["m"]["p"].AToB)
+	wantBToA := clamp(we*embedNoisy + wl*base["m"]["p"].BToA)
+	if got["m"]["p"].AToB != wantAToB {
+		t.Fatalf("AToB: got %v want %v", got["m"]["p"].AToB, wantAToB)
+	}
+	if got["m"]["p"].BToA != wantBToA {
+		t.Fatalf("BToA: got %v want %v", got["m"]["p"].BToA, wantBToA)
 	}
 }
