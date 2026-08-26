@@ -8,6 +8,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"hash/fnv"
 	"os"
 	"path/filepath"
 
@@ -106,6 +107,115 @@ func LoadScenario(name string, dataDir string) (*ScenarioData, error) {
 	}, nil
 }
 
+// ExtendedScenarioNames 是扩展陷阱套件（data/bench-extended/*.json）。
+//
+// 来源：2026-08 合成数据实验（LLM 标注对照发现词法 surrogate 对黄金对
+// 系统性低估 MAE 0.34-0.77，三类盲区成形）。与官方三场景（验收线）不同，
+// 扩展套件度量 harness 对已知陷阱的鲁棒性，须配合 ScenarioOptions 的
+// blending / FallbackTopK 使用；断言与结论见 bench_extended_test.go 与
+// docs/experiments/2026-08-synthetic-data.md。
+var ExtendedScenarioNames = []string{"paraphrase"}
+
+// DefaultExtendedDataDir 定位扩展套件数据目录（data/bench-extended），
+// 与 DefaultDataDir 同样从工作目录向上逐级查找。
+func DefaultExtendedDataDir() string {
+	dir, err := os.Getwd()
+	if err != nil {
+		return filepath.Join("data", "bench-extended")
+	}
+	for {
+		cand := filepath.Join(dir, "data", "bench-extended")
+		if st, err := os.Stat(cand); err == nil && st.IsDir() {
+			return cand
+		}
+		parent := filepath.Dir(dir)
+		if parent == dir {
+			return filepath.Join("data", "bench-extended")
+		}
+		dir = parent
+	}
+}
+
+// LoadExtendedScenario 加载扩展陷阱套件场景（仅限 ExtendedScenarioNames）。
+func LoadExtendedScenario(name string, dataDir string) (*ScenarioData, error) {
+	known := false
+	for _, n := range ExtendedScenarioNames {
+		if n == name {
+			known = true
+			break
+		}
+	}
+	if !known {
+		return nil, fmt.Errorf("未知扩展场景 %q，可选: %v", name, ExtendedScenarioNames)
+	}
+	if dataDir == "" {
+		dataDir = DefaultExtendedDataDir()
+	}
+	raw, err := os.ReadFile(filepath.Join(dataDir, name+".json"))
+	if err != nil {
+		return nil, err
+	}
+	var doc struct {
+		Scenario      string            `json:"scenario"`
+		Description   string            `json:"description"`
+		EmbeddingOnly bool              `json:"embedding_only"`
+		Members       json.RawMessage   `json:"members"`
+		Pool          json.RawMessage   `json:"pool"`
+		GroundTruth   map[string]string `json:"ground_truth"`
+	}
+	if err := json.Unmarshal(raw, &doc); err != nil {
+		return nil, fmt.Errorf("扩展场景 %s: %w", name, err)
+	}
+	members, err := OrderedSectionsMap(doc.Members)
+	if err != nil {
+		return nil, fmt.Errorf("扩展场景 %s members: %w", name, err)
+	}
+	pool, err := OrderedSectionsMap(doc.Pool)
+	if err != nil {
+		return nil, fmt.Errorf("扩展场景 %s pool: %w", name, err)
+	}
+	return &ScenarioData{
+		Scenario:      doc.Scenario,
+		Description:   doc.Description,
+		EmbeddingOnly: doc.EmbeddingOnly,
+		Members:       members,
+		Pool:          pool,
+		GroundTruth:   doc.GroundTruth,
+	}, nil
+}
+
+// RunExtendedScenario 跑扩展陷阱套件场景：语义与 RunScenario 相同
+// （noiseScale/BMax/PoolBMax 默认一致，seed 偏移走场景名 fnv 独立空间），
+// 数据来自 data/bench-extended。
+func RunExtendedScenario(name string, opts ScenarioOptions) (domain.EvaluationReport, error) {
+	if opts.NoiseScale == 0 {
+		opts.NoiseScale = 0.24
+	}
+	if opts.BMax == 0 {
+		opts.BMax = 3
+	}
+	poolBMax := 1
+	if opts.NoPoolLimit {
+		poolBMax = 0
+	} else if opts.PoolBMax > 0 {
+		poolBMax = opts.PoolBMax
+	}
+	data, err := LoadExtendedScenario(name, opts.DataDir)
+	if err != nil {
+		return domain.EvaluationReport{}, err
+	}
+	sseed := opts.Seed + extendedSeedOffset(name)
+	return runScenarioData(data, sseed, opts, poolBMax)
+}
+
+// extendedSeedOffset 扩展场景的确定性 seed 偏移（fnv 场景名散列，
+// 与官方偏移空间 0/101/202 保持距离）。
+func extendedSeedOffset(name string) int {
+	h := fnv.New32a()
+	h.Write([]byte(name))
+	return 10000 + int(h.Sum32()%10000)
+}
+
 // ScenarioOptions 是 RunScenario 的可调参数（零值 = Python 默认）。
 type ScenarioOptions struct {
 	Seed        int
@@ -147,7 +257,12 @@ func RunScenario(name string, opts ScenarioOptions) (domain.EvaluationReport, er
 		return domain.EvaluationReport{}, err
 	}
 
-	sseed := opts.Seed + scenarioSeedOffset[name]
+	return runScenarioData(data, opts.Seed+scenarioSeedOffset[name], opts, poolBMax)
+}
+
+// runScenarioData 场景执行体：surrogate 打分 → pre_matrix → solve_match
+// → 评测（RunScenario / RunExtendedScenario 共用）。
+func runScenarioData(data *ScenarioData, sseed int, opts ScenarioOptions, poolBMax int) (domain.EvaluationReport, error) {
 	var scores map[string]map[string]signal.DirScore
 	if opts.EmbedWeight > 0 && opts.LLMWeight > 0 && !data.EmbeddingOnly {
 		scores = signal.ScoreMatrixBlended(data.Members, data.Pool, sseed, opts.NoiseScale, opts.EmbedWeight, opts.LLMWeight)
