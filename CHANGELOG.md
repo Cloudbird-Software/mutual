@@ -5,6 +5,10 @@
 ## [Unreleased]
 
 ### Added
+- config：预算随规模上调——每人对 24→48、全局 1200→4800（200+ 人场景
+  黄金对召回覆盖 75%→93.5%，端到端 HR@3 0.560→1.000；含缩放律注释）。
+- domain：EvaluationReport.EnvyRate() 人均 envy 度量（total_envy 随
+  O(N²) 增长，绝对门禁只对小场景有意义）。
 - bench：扩展陷阱套件 data/bench-extended（paraphrase 同义改写 / decoy 词面
   欺骗 / messy 真实语料公平性）+ RunExtendedScenario/LoadExtendedScenario
   （白名单 fail-closed）。
@@ -16,7 +20,8 @@
   词面复述无实质不计分、可验证性门、硬约束违反单向封顶 0.1、阶段/规模错配降档、
   双向独立打分）与校准锚点（0.0-1.0 五档全距使用）。合成陷阱集 A/B（12 陷阱 ×
   盲评）：契约命中率 70.8% → 91.7%，硬约束/词面堆砌/不可验证宣称全部修正。
-- docs：合成数据实验报告（docs/experiments/2026-08-synthetic-data.md）。
+- docs：合成数据实验报告 v2（docs/experiments/2026-08-synthetic-data.md，
+  含三领域同引擎可用性确认与 800 人极限压测）。
 - config / internal/domain：原生 Go fuzz 目标（FuzzParseYAML / FuzzHashText / FuzzPyJSONDumpSections，
   Scorecard Fuzzing=0 → 自愈；mutual #5）。
 - 初始模板工程（CI gate / hygiene / dependabot / automerge 全套护栏）。
