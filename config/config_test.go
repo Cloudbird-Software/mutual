@@ -27,7 +27,7 @@ func TestDefaultValues(t *testing.T) {
 		t.Errorf("novelty_window_months: got %d want 6", cfg.NoveltyWindowMonths())
 	}
 	bud := cfg.Budgets()
-	if bud.PerProfileCap != 24 || bud.MaxCalls != 1200 || bud.BatchSize != 2 {
+	if bud.PerProfileCap != 48 || bud.MaxCalls != 4800 || bud.BatchSize != 2 {
 		t.Errorf("budgets: got %+v", bud)
 	}
 	g := cfg.Gates()
