@@ -136,6 +136,6 @@ mutual/
 
 ## 6. 设计决策记录
 
-架构级决策见组织 `agent-registry/decisions/ADR-0027`（Go+BAML 重写立项）。
+架构级决策见组织 archive 仓 `adr/ADR-0027-mutual-gobaml-rewrite-onboarding.md`（Go+BAML 重写立项；ADR-0085 家园单仓化）。
 本仓库内的实现级权衡（如 glibc log 移植原因、map 排序确定性）记录在
 各包的 doc 注释里——`go doc` 可直接检索。
