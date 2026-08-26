@@ -153,83 +153,15 @@ func SolveMatch(prefMatrix *domain.PrefMatrix, matching MatchingConfig, blending
 //
 // 语义（与 Evaluate 的 envy 计数逐位一致，改语义 = 改 oracle）：
 // 左节点 i 嫉妒 i2 ⟺ i2 的匹配集中存在 j2，使 pref_lr[i][j2]
-// 严格大于 i 自己最优匹配的偏好值。右侧同构。
+// 严格大于 i 自己最优匹配的偏好值。右侧同构。配对计算复用
+// evaluate.go 的 collectRowMatches / envyPairs，两侧口径不分叉。
 func CheckEnvy(prefMatrix *domain.PrefMatrix, matchProb domain.Matrix) map[string]any {
-	m := prefMatrix.M()
-	n := prefMatrix.N()
+	// 左侧：envier = 行；右侧行视角取转置（行 = right 侧）。
+	leftMatches := collectRowMatches(matchProb)
+	rightMatches := collectRowMatches(transpose(matchProb))
 
-	leftMatches := make([][]int, m)
-	for i := 0; i < m; i++ {
-		for j := 0; j < n; j++ {
-			if matchProb[i][j] > 0.5 {
-				leftMatches[i] = append(leftMatches[i], j)
-			}
-		}
-	}
-	rightMatches := make([][]int, n)
-	for j := 0; j < n; j++ {
-		for i := 0; i < m; i++ {
-			if matchProb[i][j] > 0.5 {
-				rightMatches[j] = append(rightMatches[j], i)
-			}
-		}
-	}
-
-	var leftEnvy [][2]int
-	for i, own := range leftMatches {
-		if len(own) == 0 {
-			continue
-		}
-		ownBest := prefMatrix.PrefLeftToRight[i][own[0]]
-		for _, j := range own {
-			if prefMatrix.PrefLeftToRight[i][j] > ownBest {
-				ownBest = prefMatrix.PrefLeftToRight[i][j]
-			}
-		}
-		for i2, other := range leftMatches {
-			if i2 == i || len(other) == 0 {
-				continue
-			}
-			envied := false
-			for _, j2 := range other {
-				if prefMatrix.PrefLeftToRight[i][j2] > ownBest {
-					envied = true
-					break
-				}
-			}
-			if envied {
-				leftEnvy = append(leftEnvy, [2]int{i, i2})
-			}
-		}
-	}
-
-	var rightEnvy [][2]int
-	for j, own := range rightMatches {
-		if len(own) == 0 {
-			continue
-		}
-		ownBest := prefMatrix.PrefRightToLeft[j][own[0]]
-		for _, i := range own {
-			if prefMatrix.PrefRightToLeft[j][i] > ownBest {
-				ownBest = prefMatrix.PrefRightToLeft[j][i]
-			}
-		}
-		for j2, other := range rightMatches {
-			if j2 == j || len(other) == 0 {
-				continue
-			}
-			envied := false
-			for _, i2 := range other {
-				if prefMatrix.PrefRightToLeft[j][i2] > ownBest {
-					envied = true
-					break
-				}
-			}
-			if envied {
-				rightEnvy = append(rightEnvy, [2]int{j, j2})
-			}
-		}
-	}
+	leftEnvy := envyPairs(prefMatrix.PrefLeftToRight, leftMatches)
+	rightEnvy := envyPairs(prefMatrix.PrefRightToLeft, rightMatches)
 
 	leftList := make([]any, len(leftEnvy))
 	for k, p := range leftEnvy {
@@ -322,7 +254,7 @@ func attachBMinReport(report map[string]any, pm *domain.PrefMatrix, matchProb do
 		// 模式即 member 侧度数——两种口径在此统一）。
 		degree := 0
 		for _, v := range matchProb[i] {
-			if v > 0.5 {
+			if v > matchThreshold {
 				degree++
 			}
 		}

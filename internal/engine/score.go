@@ -387,9 +387,9 @@ func parseScoringResponse(text string, expectedPairs int) []*struct{ a, b float6
 	return out
 }
 
-// loadsLenient 容忍 markdown 代码围栏与前后噪声的 JSON 解析：
-// 先整串尝试，再截取首个 [ 到末个 ] / 首个 { 到末个 }。
-func loadsLenient(text string) any {
+// stripMarkdownFence 剥离首尾空白与 markdown 代码围栏（打分与话术
+// 两个响应解析器共用的容错前处理）。
+func stripMarkdownFence(text string) string {
 	s := strings.TrimSpace(text)
 	if strings.HasPrefix(s, "```") {
 		if i := strings.IndexByte(s, '\n'); i != -1 {
@@ -399,6 +399,13 @@ func loadsLenient(text string) any {
 		s = strings.TrimSuffix(s, "```")
 		s = strings.TrimRight(s, " \t\r\n")
 	}
+	return s
+}
+
+// loadsLenient 容忍 markdown 代码围栏与前后噪声的 JSON 解析：
+// 先整串尝试，再截取首个 [ 到末个 ] / 首个 { 到末个 }。
+func loadsLenient(text string) any {
+	s := stripMarkdownFence(text)
 	if v, ok := loads(s); ok {
 		return v
 	}
@@ -435,18 +442,23 @@ func clamp01(v any) *float64 {
 		if math.IsNaN(x) {
 			return nil
 		}
-		f := math.Max(0.0, math.Min(1.0, x))
+		f := clampUnit(x)
 		return &f
 	case string:
 		f, err := strconv.ParseFloat(strings.TrimSpace(x), 64)
 		if err != nil || math.IsNaN(f) {
 			return nil
 		}
-		f = math.Max(0.0, math.Min(1.0, f))
+		f = clampUnit(f)
 		return &f
 	default:
 		return nil
 	}
+}
+
+// clampUnit 截断浮点值到 [0,1]（clamp01 的两个分支共用）。
+func clampUnit(f float64) float64 {
+	return math.Max(0.0, math.Min(1.0, f))
 }
 
 // dedupeOrdered 去重保序。

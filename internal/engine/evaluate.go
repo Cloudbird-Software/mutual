@@ -7,6 +7,11 @@ import (
 	"github.com/Cloudbird-Software/mutual/internal/domain"
 )
 
+// matchThreshold 是匹配判定的二值阈值：MatchProb 中值 > matchThreshold
+// 视为已匹配（同集对称存储 / 二部图单向存储均适用）。匹配、envy 统计
+// 与 b_min 度数统计共用同一口径（改口径 = 改 oracle）。
+const matchThreshold = 0.5
+
 // EvaluateInput 是 evaluate 阶段的输入。
 type EvaluateInput struct {
 	// Predictions: 每个场景的推荐列表（按优先级降序）。
@@ -112,19 +117,33 @@ func ndcgAt5(rank float64) float64 {
 	return 0
 }
 
-// envyCount 统计一侧的 envy 计数（own-best 语义）。
+// envyCount 统计一侧的 envy 计数（own-best 语义，与 CheckEnvy 的
+// 配对逻辑同一实现——两处口径不分叉）。
 // pref 行 = envier 侧，列 = 被匹配侧；match_prob 与 pref 同形。
 func envyCount(pref domain.Matrix, matchProb domain.Matrix) int {
-	n := matchProb.Rows()
-	matches := make([][]int, n)
-	for i := 0; i < n; i++ {
-		for j := range matchProb[i] {
-			if matchProb[i][j] > 0.5 {
+	return len(envyPairs(pref, collectRowMatches(matchProb)))
+}
+
+// collectRowMatches 返回每行 i 上值 > matchThreshold 的列下标列表
+// （右侧行视角传转置矩阵即可复用，见 Evaluate / CheckEnvy）。
+func collectRowMatches(m domain.Matrix) [][]int {
+	rows := m.Rows()
+	matches := make([][]int, rows)
+	for i := 0; i < rows; i++ {
+		for j, v := range m[i] {
+			if v > matchThreshold {
 				matches[i] = append(matches[i], j)
 			}
 		}
 	}
-	count := 0
+	return matches
+}
+
+// envyPairs 统计一侧的 envy 对（own-best 语义）：实体 i 嫉妒 i2 ⟺
+// i2 的匹配集中存在选项严格优于 i 自己最优匹配的偏好值。返回 (i, i2)
+// 有序对，外层按 envier 升序、内层按被嫉妒者升序（与配对计数共用）。
+func envyPairs(pref domain.Matrix, matches [][]int) [][2]int {
+	var pairs [][2]int
 	for i, own := range matches {
 		if len(own) == 0 {
 			continue
@@ -136,7 +155,7 @@ func envyCount(pref domain.Matrix, matchProb domain.Matrix) int {
 			}
 		}
 		for iPrime, other := range matches {
-			if iPrime == i {
+			if iPrime == i || len(other) == 0 {
 				continue
 			}
 			envied := false
@@ -147,17 +166,17 @@ func envyCount(pref domain.Matrix, matchProb domain.Matrix) int {
 				}
 			}
 			if envied {
-				count++
+				pairs = append(pairs, [2]int{i, iPrime})
 			}
 		}
 	}
-	return count
+	return pairs
 }
 
 func anyAboveHalf(m domain.Matrix) bool {
 	for _, row := range m {
 		for _, v := range row {
-			if v > 0.5 {
+			if v > matchThreshold {
 				return true
 			}
 		}

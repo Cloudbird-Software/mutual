@@ -99,7 +99,7 @@ func EmbedSections(
 			vec = copyVector(domain.Vector(vecs[cell.textPos]))
 		}
 		embeddings[key.user][sectionIndex[key.section]] = domain.SectionEmbeddings{vec}
-		sectionHashes[string(userIDs[key.user])+"|"+key.section] = cell.hash
+		sectionHashes[sectionHashKey(userIDs[key.user], key.section)] = cell.hash
 	}
 
 	// 每个 section 的描述符槽位数 = 全体用户的最大值（不足补零向量）。
@@ -135,7 +135,7 @@ func EmbedSections(
 			vec = copyVector(domain.Vector(vecs[cell.textPos]))
 		}
 		hydeArrays[domain.SectionName(key.section)][key.user][key.desc] = vec
-		hydeHashes[string(userIDs[key.user])+"|"+key.section+"|"+itoa(key.desc)] = cell.hash
+		hydeHashes[hydeHashKey(userIDs[key.user], key.section, key.desc)] = cell.hash
 	}
 
 	userTimestamps := map[string]string{}
@@ -168,6 +168,17 @@ type hydeCellKey struct {
 	user    int
 	section string
 	desc    int
+}
+
+// sectionHashKey / hydeHashKey 是内容 hash 的缓存键形状（§5：
+// content-addressed 复用）——"user|section" 与 "user|section|slot"。
+// 键的拼接只在此处发生，读写两侧不分叉。
+func sectionHashKey(userID domain.UserID, section string) string {
+	return string(userID) + "|" + section
+}
+
+func hydeHashKey(userID domain.UserID, section string, slot int) string {
+	return sectionHashKey(userID, section) + "|" + itoa(slot)
 }
 
 // embedCell 是一个待嵌入（或复用）的单元：
@@ -220,7 +231,7 @@ func planCells(
 			if reuse && existing != nil {
 				if oldI, okU := oldUserIndex[uid]; okU {
 					if oldK, okS := oldSectionIndex[name]; okS {
-						if existing.SectionHashes[string(uid)+"|"+name] == hash {
+						if existing.SectionHashes[sectionHashKey(uid, name)] == hash {
 							basePlan[cellKey{i, name}] = &embedCell{
 								reuse: true, oldUser: oldI, oldSection: oldK, hash: hash,
 							}
@@ -250,7 +261,7 @@ func planCells(
 				hash := domain.HashText(desc)
 				if reuse && existing != nil && k < oldSlots {
 					if oldI, okU := oldUserIndex[uid]; okU {
-						if existing.HydeHashes[string(uid)+"|"+string(name)+"|"+itoa(k)] == hash {
+						if existing.HydeHashes[hydeHashKey(uid, string(name), k)] == hash {
 							hydePlan[hydeCellKey{i, string(name), k}] = &embedCell{
 								reuse: true, oldUser: oldI, oldSection: k, hash: hash,
 							}

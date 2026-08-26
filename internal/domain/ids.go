@@ -22,13 +22,3 @@ func StablePairID(a, b UserID) PairID {
 	sort.Strings(users)
 	return PairID(users[0] + "__" + users[1])
 }
-
-// Sorted 返回按字典序排序的副本（不修改原切片）。
-// 排序是确定性的：所有遍历用户集合的地方都应先排序再迭代，
-// 保证输出与 Python 侧 sorted() 逐位一致。
-func Sorted(ids []UserID) []UserID {
-	out := make([]UserID, len(ids))
-	copy(out, ids)
-	sort.Slice(out, func(i, j int) bool { return out[i] < out[j] })
-	return out
-}
