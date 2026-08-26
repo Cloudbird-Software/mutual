@@ -1,0 +1,127 @@
+{
+  "scenario": "paraphrase",
+  "description": "Paraphrase 陷阱：每个黄金对的双向价值链路全部以同义改写/上下位词表达，词面零重叠（gold 方向分对词法 surrogate 恒为 0）；同时每名 member 周围埋 1-2 个词面高重叠、语义劣质的干扰池（token 直接撞上但能力错位）。专测词法 surrogate 的语义盲区：HR 预期显著低于 classic。",
+  "embedding_only": false,
+  "members": {
+    "m01": {
+      "needs": "need battle hardened sre to rescue our postgresql redis cluster before black friday meltdowns",
+      "project": "spring release melting primary during evening rush snapshots lagging hours behind",
+      "skills": "sql query plans indexes caches queues autoscaling load sheds pager rotations",
+      "vision": "instant answers even on the busiest sale mornings"
+    },
+    "m02": {
+      "needs": "need xgboost whisperer to catch plastic crooks before settlements clear",
+      "project": "authorization rail judging millions of taps nightly chargeback flare ups stinging",
+      "skills": "feature shops labeled outcomes grpc sims replay harness champion challenger toggles",
+      "vision": "honest spenders glide thieves bounce hard"
+    },
+    "m03": {
+      "needs": "grizzled companion wanted shaving tail latencies from order matching core deadlines loom",
+      "project": "tick cadence policing gap hunts aborted fixtures rollback scars collected fondly",
+      "skills": "tokio arenas lockfree rings flamegraphs fuzzers cargo benches",
+      "vision": "fills land honest clocks nobody second guesses the tape"
+    },
+    "m04": {
+      "needs": "fields drinking unevenly hoping agronomy wisdom steers our automation wisely soon",
+      "project": "multispectral sorties weekly ndvi mosaics overlaying prescriptions valves timer deaf",
+      "skills": "flight ops geotagged rasters stereo cams calibration racks",
+      "vision": "every acre sips precisely waste shamed openly"
+    },
+    "m05": {
+      "needs": "rescue our cellar of municipal memories fifty winters deep decaying unindexed unread",
+      "project": "brittle folios crumble faster than interns flattening glass plates graveyard shifts",
+      "skills": "ocr corrections search relevancy truncation quirks dedupe wars",
+      "vision": "anyone queries yesteryear instantly grandma headlines immortal"
+    },
+    "m06": {
+      "needs": "wards drown beneath paper chases nurses deserve faces not filing cabinets",
+      "project": "discharge afternoons binders vanish histories shelved basements gathering dust",
+      "skills": "bedside tablets triage boards alert routing escalations huddles",
+      "vision": "clinicians linger bedsides paper ghosts banished"
+    },
+    "m07": {
+      "needs": "leadership begs credible numbers self served sans tickets governance gaping wide",
+      "project": "metric towers bicker spreadsheets spaghetti shadow extracts eroding faith quarterly",
+      "skills": "semantic layer diligence looker discernment stakeholder herding narrative flair",
+      "vision": "every debate starts from shared truth ends in decisions"
+    },
+    "m08": {
+      "needs": "need stranger intake sped up watchlist screening automated queues drained fewer humans burnt",
+      "project": "prove yourself loops photographs utility bills notarized affidavits abandonment cliffs mapped",
+      "skills": "web flows experiments copy nudges passport readers geofence config",
+      "vision": "doorways welcome nearly everyone doubts dissolve fast"
+    },
+    "m09": {
+      "needs": "serial rescuer seeking stages bragging postgresql redis xgboost cred wherever applause blooms",
+      "project": "portfolio studded keynote medals trophy shelf case studies embellished bravely",
+      "skills": "consultative speedruns framework namechecks badges stickers enthusiasm abundant",
+      "vision": "influence compounds reach broadens destiny obviously glittering"
+    },
+    "m10": {
+      "needs": "quiet orbits seeking choirs potteries rooftop gardens anywhere hands busy hearts fuller",
+      "project": "zines stitched neighbor threads recipes salvaged voice memos archived tenderly",
+      "skills": "empathy facilitation minuted gatherings porch circles sortings spreadsheets tidied",
+      "vision": "kindness compounded locally roots deepened gently together"
+    }
+  },
+  "pool": {
+    "p01": {
+      "needs": "rescuing overloaded product squads whose datastore buckles when holiday crowds storm in",
+      "project": "war room chronicles replica cutovers drill rehearsed maintenance windows honored",
+      "skills": "capacity forecasting replication topology lock contortions anomalies shard rebalancing watchdog paging trees automation reflexes",
+      "vision": "calm platforms steady heartbeats midnight stillness dependable"
+    },
+    "p02": {
+      "needs": "money movers request keener instincts hunted losses demand fresh eyes endless testing",
+      "project": "consortium jams lending desks insurers alcoves telecom corridors warmly swapped",
+      "skills": "gradient boosted ensembles threshold carving class imbalance antidotes watchlist screening queues automated dossiers curated meticulously governance councils canvassed pattern matching gaps bridged",
+      "vision": "fewer wrongful rejections safer vaults kinder streets"
+    },
+    "p03": {
+      "needs": "venues bleeding participants amid volatility swings invite calmer hands pronto",
+      "project": "interop certifications gauntlets stress corrals crushed drills washouts tallied",
+      "skills": "protocol pacing jitter taming deterministic soak rigs colocated fabrics depth feeds harmonized wire stubs postgresql replicas pampered overnight automation licks",
+      "vision": "executions trustworthy markets breathing easier visibly"
+    },
+    "p04": {
+      "needs": "imagery hauls adrift plentiful pixels scarce readings heartfelt mentorship beseeched",
+      "project": "county showcases drip retrofits rainfed plots farmers days classrooms enrolled",
+      "skills": "evapotranspiration gauges tensiometer craft canopy stress indices varietal thirst curves rationing doctrine elder plant lore",
+      "vision": "groves flourish dew budgets honored never drenched heedless"
+    },
+    "p05": {
+      "needs": "attic murmurs summon tireless decipherers weary squinters welcomed respite brotherhood promised",
+      "project": "genealogy circles museum wings library annexes adopt outputs gratefully sampled",
+      "skills": "manuscript decipherment paleography apprentices poring dialect lexicons marginalia mappings authority rosters persistent identifiers collation paper sherlocks overtime devotion",
+      "vision": "neglected voices rejoin squares chronicles repatriated permanently"
+    },
+    "p06": {
+      "needs": "stalwart floorfolk asphyxiating under manila avalanches plead rescue parties marshaled promptly",
+      "project": "province rollouts printer funerals purging ceremonies donation drives teach ins scheduled",
+      "skills": "record abstraction release desks coding exams retention schedules legacy migrations terminological glossaries cartography kindly drawn rescue craft honored",
+      "vision": "care takes front stage paperwork stagehands silent reliable"
+    },
+    "p07": {
+      "needs": "raw event deluges strand unnamed shores modeling stewardship volunteers rallied forthwith",
+      "project": "commerce billows marketing foam logistics knots adopted guests converse warehouse eloquently",
+      "skills": "bronze silver refinements expectation suites lineage stitchery batches streams conformed grains xgboost dalliances ranking sidetracks automation garnish",
+      "vision": "questions anticipated rather than repeated dignity restored broadly"
+    },
+    "p08": {
+      "needs": "beneath suspicious portrait piles upstanding counterparts sought meticulous patient examiners thrive",
+      "project": "rendezvous summits deceptions foiled alumni registries referrals cherished medallions displayed",
+      "skills": "verisimilitude assays counterfeit sniffing impostor tribunals adjudication craftsmanship escalation tasteful verdicts codified handbooks",
+      "vision": "entrances flung open watchful eyes resting softly"
+    }
+  },
+  "ground_truth": {
+    "m01": "p01",
+    "m02": "p02",
+    "m03": "p03",
+    "m04": "p04",
+    "m05": "p05",
+    "m06": "p06",
+    "m07": "p07",
+    "m08": "p08"
+  }
+}

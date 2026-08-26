@@ -22,6 +22,7 @@ venv/
 # 用 data/* 而非 data/：目录本身不被忽略，子目录例外才能生效
 data/*
 !data/bench/
+!data/bench-extended/
 *.db
 
 # Go / BAML
