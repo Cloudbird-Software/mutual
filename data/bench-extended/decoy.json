@@ -1,0 +1,126 @@
+{
+  "scenario": "decoy",
+  "description": "Decoy 词面欺骗：每个 pool 的 skills 嵌入一块与另一 member needs 几乎逐字复述的 stolen block（σ=i+4 mod 8），词面重叠极高但无实质互惠；黄金对词面中等重叠但双向真实咬合。10 member x 8 pool，m_i <-> p_i 黄金对，m09/m10 无真值竞争者。",
+  "members": {
+    "m01": {
+      "needs": "need wcag accessibility audit patient onboarding flows screen reader contrast fixes",
+      "project": "clinic scheduling app react native browser rollout",
+      "skills": "patient interviews usability sessions service blueprint frontline training feedback loops",
+      "vision": "care accessible simple trustworthy"
+    },
+    "m02": {
+      "needs": "need ros2 navigation tuning lidar odometry drift localization rescues",
+      "project": "fulfillment center robot fleet commissioning",
+      "skills": "operator drills exception playbooks safety walkthroughs shift reports checklist discipline standups",
+      "vision": "robots dependable coworkers"
+    },
+    "m03": {
+      "needs": "need satellite burn scar mapping smoke plume tracking containment dashboards weekly",
+      "project": "district wildfire season situational awareness upgrade",
+      "skills": "incident briefings evacuation coordination crew rosters radio protocols public updates",
+      "vision": "forests communities coexist"
+    },
+    "m04": {
+      "needs": "need iso20022 migration support reconciliation exceptions investigation cut offs settlement windows",
+      "project": "cross border payments operations modernization",
+      "skills": "scheme rule interpretations regulator liaisons escalation desks client communications training curricula",
+      "vision": "payments boring dependable"
+    },
+    "m05": {
+      "needs": "need adaptive audio implementation wwise fmod interactive music layering combat intensity",
+      "project": "roguelike dungeon crawler vertical slice",
+      "skills": "level pacing encounter design playtest cycles narrative beats producer spreadsheets",
+      "vision": "play that sticks memory"
+    },
+    "m06": {
+      "needs": "need hl7 v2 fhir migrations interface downtime drills ehr upgrade freeze calendars",
+      "project": "three hospital merger systems consolidation",
+      "skills": "clinical staff champions downtime procedure binders vendor escalations capacity planning",
+      "vision": "clinicians never fight paperwork"
+    },
+    "m07": {
+      "needs": "need irrigation scheduling tightening substrate moisture visibility climate ramps harvest labor forecasts",
+      "project": "vertical greens expansion second facility",
+      "skills": "crop rotation plans crew rosters packout standards buyer commitments input orders variance reviews",
+      "vision": "fresh local resilient greens"
+    },
+    "m08": {
+      "needs": "need archive search overhaul query understanding synonym coverage editorial relevance ranking revamp",
+      "project": "centennial digitization push rare photos",
+      "skills": "style guide enforcement headline standards section taxonomy curation reporter coaching backlog grooming",
+      "vision": "every story findable forever"
+    },
+    "m09": {
+      "needs": "need invoice ocr parsing expense categorization bookkeeping sync headaches gone",
+      "project": "solo venture bootstrap weekends",
+      "skills": "spreadsheet modeling apis scraping browser extensions",
+      "vision": "money clarity for solopreneurs"
+    },
+    "m10": {
+      "needs": "need orthomosaic stitching gcp workflows volumetric deliverables turnaround speed",
+      "project": "construction progress monitoring contracts",
+      "skills": "piloting airspace filings mission planners client debriefs field batteries",
+      "vision": "skies open accountable sites"
+    }
+  },
+  "pool": {
+    "p01": {
+      "needs": "seeking clinical partners discovery sprint service blueprint staff training co design workshops",
+      "project": "hospital accessibility remediation practice quarterly audit reports",
+      "skills": "aria screen reader wcag remediation audits figma handoff wwise fmod adaptive audio interactive layering",
+      "vision": "accessible care journeys for every patient"
+    },
+    "p02": {
+      "needs": "seeking warehouse partners operator drills exception runbooks safety signoffs pilot vendor coordination capacity planning allies",
+      "project": "autonomy retrofit kits existing fleets",
+      "skills": "telemetry dashboards routing fleet regressions costmaps ros2 lidar navigation hl7 fhir ehr interface migrations",
+      "vision": "moves without drama reliable robots"
+    },
+    "p03": {
+      "needs": "seeking operational fire agencies feedback incident briefings evacuation context validation visits reviews orders discipline",
+      "project": "burned area reference products grant funded",
+      "skills": "geospatial burn scar compositing cloud masking timeseries substrate moisture irrigation scheduling yield maps sensors",
+      "vision": "resilient landscapes informed communities"
+    },
+    "p04": {
+      "needs": "seeking banking partners edge case oral history scheme quirks regulator context pilot candidates coaching standards grooming",
+      "project": "message parsing switch overhaul",
+      "skills": "camt parsers settlement parity exceptions worklists cut offs replay alias enrichment query understanding ranking taxonomy synonym coverage editorial relevance headlines",
+      "vision": "gloriously boring money plumbing"
+    },
+    "p05": {
+      "needs": "small studio crafting living soundtracks seeking encounter design pacing partner playtest loops emotion signals user data usability feedback",
+      "project": "rhythm roguelike demo audio backlog",
+      "skills": "dsp wwise fmod soundtrack stems vertical slices react accessibility wcag audit screen reader contrast",
+      "vision": "worlds that breathe reactive sound"
+    },
+    "p06": {
+      "needs": "integration shop seeking steady hands clinical buy in downtime choreography vendor wrangling capacity restraints shift board reports",
+      "project": "redaction safe replica environments",
+      "skills": "hl7 fhir mappings queue resets cert environments regression packs ros2 lidar slam navigation localization odometry",
+      "vision": "chase paperwork away"
+    },
+    "p07": {
+      "needs": "vertical farm builders seeking grower wisdom deployment sites maintenance realities root causes radios updates crop rotation knowledge packout rhythms patience",
+      "project": "sensor kit refurbishing benches",
+      "skills": "iot nodes firmware ota updates substrate moisture probes irrigation valves climate buffers satellite burn scar smoke plume mapping containment",
+      "vision": "per plant honest telemetry"
+    },
+    "p08": {
+      "needs": "search vendor seeking editorial taste partners house standards respect curation judgment annotation discipline reporter empathy client support desks training rollouts",
+      "project": "demo sandbox seeded corpus",
+      "skills": "coverage gauges relevance ranking query sets typo tolerance synonym rings facet controls evaluations headline modules iso20022 reconciliation settlement windows cut offs exceptions",
+      "vision": "reads like magic loads instantly"
+    }
+  },
+  "ground_truth": {
+    "m01": "p01",
+    "m02": "p02",
+    "m03": "p03",
+    "m04": "p04",
+    "m05": "p05",
+    "m06": "p06",
+    "m07": "p07",
+    "m08": "p08"
+  }
+}

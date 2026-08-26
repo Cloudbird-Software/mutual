@@ -42,3 +42,26 @@ func TestExtendedScenarioRejectsUnknownName(t *testing.T) {
 		t.Fatal("未知扩展场景应报错")
 	}
 }
+
+// TestExtendedDecoy 词面欺骗：干扰者把 member 的 needs 关键词近乎原样
+// 复述进 skills（token 重叠极高），但无项目证据支撑、反向价值≈0。
+//
+// 实验基线：纯方向分 HR@3=0.250（8 对仅 1-2 对幸存且退居第 2）；
+// blend(0.35/0.65)+fallback(3) 修复至 1.000/NDCG 0.677——保底推荐
+// 让被 NSW 几何均值正确降权的场景重新可见。断言 tuned 下限 0.875。
+func TestExtendedDecoy(t *testing.T) {
+	base, err := RunExtendedScenario("decoy", ScenarioOptions{})
+	if err != nil {
+		t.Fatalf("基线: %v", err)
+	}
+	if base.HRAt3 < 0.25 {
+		t.Fatalf("词面欺骗场景基线退化: HR@3=%.3f（实验基线 0.250）", base.HRAt3)
+	}
+	tuned, err := RunExtendedScenario("decoy", ScenarioOptions{EmbedWeight: 0.35, LLMWeight: 0.65, FallbackTopK: 3})
+	if err != nil {
+		t.Fatalf("blend+fallback: %v", err)
+	}
+	if tuned.HRAt3 < 0.875 || tuned.NDCGAt5 < 0.6 {
+		t.Fatalf("blend+fallback 未达实验值: HR@3=%.3f NDCG@5=%.3f（实验 1.000/0.677）", tuned.HRAt3, tuned.NDCGAt5)
+	}
+}
