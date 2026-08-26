@@ -47,7 +47,7 @@
 
 ### 2.4 adr-required（C1 治理）
 
-- C1 脚手架路径（`.github/`、`AGENTS.md`、`Makefile`、`docs/`、`zizmor.yml` 等）变更的 PR 标题/描述须引用 `ADR-NNNN`，且该 ADR 须真实存在于 agent-registry/decisions（幽灵 ADR 拦截）。
+- C1 脚手架路径（`.github/`、`AGENTS.md`、`Makefile`、`docs/`、`zizmor.yml` 等）变更的 PR 标题/描述须引用 `ADR-NNNN`，且该 ADR 须真实存在于 archive/adr（幽灵 ADR 拦截；ADR-0085 家园单仓化）。
 - **失败行为**：阻断合并。
 
 ### 2.5 gate（汇总）
