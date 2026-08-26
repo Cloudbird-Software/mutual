@@ -221,6 +221,45 @@ func ScoreMatrix(
 	return out
 }
 
+// ScoreMatrixBlended 是真实管线 score 阶段双信号混合的离线镜像：
+// pref = embedW·noisy(EmbedScore) + llmW·noisy(DirectionalScore)，双向独立。
+//
+// 用途：官方 bench 的 ScoreMatrix 只喂方向分（LLM 信号替身），完全绕过
+// config blending（embed/llm 权重）——真实管线里 embed 相似度是同义改写
+// 盲区的兜底信号（classic m3↔p3 类失效）。本函数让离线评测能执行与
+// config/default.yaml 相同的混合语义。
+//
+// 噪声流：方向分与 ScoreMatrix 逐位一致（member × pool × (a_to_b, b_to_a)）；
+// embed 分走独立流（seed+777777，同序）。embedW=0 时输出与 ScoreMatrix
+// 完全一致（零值兼容，golden 不受影响）。embeddingOnly 场景不适用
+// （冷启动无 LLM 信号可混合），调用方负责分流。
+func ScoreMatrixBlended(
+	members, pool []OrderedSections,
+	seed int,
+	noiseScale, embedW, llmW float64,
+) map[string]map[string]DirScore {
+	out := ScoreMatrix(members, pool, seed, noiseScale, false)
+	if embedW <= 0 {
+		return out
+	}
+	rs := rng.New(uint32(uint32(mod32(seed) + 777777)))
+	for _, m := range members {
+		for _, p := range pool {
+			en := Noisy(EmbedScore(m.Sections, p.Sections), rs, noiseScale)
+			s := out[m.ID][p.ID]
+			out[m.ID][p.ID] = DirScore{
+				AToB: clamp01f(embedW*en + llmW*s.AToB),
+				BToA: clamp01f(embedW*en + llmW*s.BToA),
+			}
+		}
+	}
+	return out
+}
+
+func clamp01f(v float64) float64 {
+	return math.Max(0, math.Min(1, v))
+}
+
 func mod32(seed int) int {
 	u := uint64(uint32(seed))
 	return int(u)

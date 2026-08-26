@@ -114,6 +114,15 @@ type ScenarioOptions struct {
 	PoolBMax    int
 	NoPoolLimit bool
 	DataDir     string
+	// EmbedWeight / LLMWeight 同时 > 0 且场景非 embeddingOnly 时，启用
+	// 双信号混合（signal.ScoreMatrixBlended，镜像真实管线的 config
+	// blending）。零值 = 现行纯方向分（golden 语义不变）。
+	EmbedWeight float64
+	LLMWeight   float64
+	// FallbackTopK > 0 时启用保底推荐：member 的匹配边不足该数时，
+	// 用 PrefMatrix 左行 top 候选补齐推荐列表（推荐列表 ≠ 匹配结果：
+	// 竞争失利者也不应空手而归）。零值 = 现行仅匹配边（golden 不变）。
+	FallbackTopK int
 }
 
 // RunScenario 跑单个场景：surrogate 打分 → pre_matrix → solve_match
@@ -139,7 +148,12 @@ func RunScenario(name string, opts ScenarioOptions) (domain.EvaluationReport, er
 	}
 
 	sseed := opts.Seed + scenarioSeedOffset[name]
-	scores := signal.ScoreMatrix(data.Members, data.Pool, sseed, opts.NoiseScale, data.EmbeddingOnly)
+	var scores map[string]map[string]signal.DirScore
+	if opts.EmbedWeight > 0 && opts.LLMWeight > 0 && !data.EmbeddingOnly {
+		scores = signal.ScoreMatrixBlended(data.Members, data.Pool, sseed, opts.NoiseScale, opts.EmbedWeight, opts.LLMWeight)
+	} else {
+		scores = signal.ScoreMatrix(data.Members, data.Pool, sseed, opts.NoiseScale, data.EmbeddingOnly)
+	}
 
 	memberIDs := make([]domain.UserID, len(data.Members))
 	for i, m := range data.Members {
@@ -185,7 +199,14 @@ func RunScenario(name string, opts ScenarioOptions) (domain.EvaluationReport, er
 	for k, v := range data.GroundTruth {
 		truth[domain.UserID(k)] = domain.UserID(v)
 	}
-	predictions, groundTruth := rankedByLeft(outcome.Edges, memberIDs, truth, maxInt(opts.BMax, 1))
+	topK := maxInt(opts.BMax, 1)
+	var predictions [][]string
+	var groundTruth []string
+	if opts.FallbackTopK > 0 {
+		predictions, groundTruth = rankedByLeftFallback(outcome.Edges, pm, memberIDs, truth, topK, opts.FallbackTopK)
+	} else {
+		predictions, groundTruth = rankedByLeft(outcome.Edges, memberIDs, truth, topK)
+	}
 	return engine.Evaluate(engine.EvaluateInput{
 		Predictions: predictions,
 		GroundTruth: groundTruth,
@@ -282,6 +303,76 @@ func RunSuite(seed int, noiseScale float64) (map[string]domain.EvaluationReport,
 	market.Metadata = meta
 	out["market"] = market
 	return out, nil
+}
+
+// rankedByLeftFallback 在 rankedByLeft 之上做保底补齐：member 的推荐
+// 不足 fallbackK 时，用 PrefMatrix 左行 top 候选（pref 降序、pid 降序，
+// 与匹配边同一排序语义）补到 fallbackK。匹配边始终排在候选之前。
+//
+// 动机：推荐列表 ≠ 匹配结果。pool 侧度约束（PoolBMax）下的竞争失利者
+// 可能一条匹配边都没有——真实 harness 不应让会员空手而归，PrefMatrix
+// 行首候选人仍是可曝光的推荐。
+func rankedByLeftFallback(
+	edges []domain.Edge,
+	pm *domain.PrefMatrix,
+	leftIDs []domain.UserID,
+	truth map[domain.UserID]domain.UserID,
+	topK, fallbackK int,
+) ([][]string, []string) {
+	rowIdx := map[domain.UserID]int{}
+	for i, id := range pm.LeftIDs {
+		rowIdx[id] = i
+	}
+	idxOf := func(uid domain.UserID) int {
+		for i, id := range leftIDs {
+			if id == uid {
+				return i
+			}
+		}
+		return -1
+	}
+	predictions, groundTruth := rankedByLeft(edges, leftIDs, truth, topK)
+	for _, lid := range leftIDs {
+		if _, ok := truth[lid]; !ok {
+			continue
+		}
+		li := idxOf(lid)
+		ranked := predictions[li]
+		if len(ranked) >= fallbackK {
+			continue
+		}
+		seen := map[string]bool{}
+		for _, r := range ranked {
+			seen[r] = true
+		}
+		type cand struct {
+			id string
+			sc float64
+		}
+		i := rowIdx[lid]
+		cands := make([]cand, 0, pm.N())
+		for j := 0; j < pm.N(); j++ {
+			cands = append(cands, cand{string(pm.RightIDs[j]), pm.PrefLeftToRight[i][j]})
+		}
+		// 与 sortEdgesReverse/edgeGreater 同语义：分数降序，平局 pid 降序。
+		for a := 1; a < len(cands); a++ {
+			for b := a; b > 0 && (cands[b].sc > cands[b-1].sc ||
+				(cands[b].sc == cands[b-1].sc && cands[b].id > cands[b-1].id)); b-- {
+				cands[b], cands[b-1] = cands[b-1], cands[b]
+			}
+		}
+		for _, c := range cands {
+			if len(ranked) >= fallbackK {
+				break
+			}
+			if !seen[c.id] {
+				ranked = append(ranked, c.id)
+				seen[c.id] = true
+			}
+		}
+		predictions[li] = ranked
+	}
+	return predictions, groundTruth
 }
 
 func maxInt(a, b int) int {
