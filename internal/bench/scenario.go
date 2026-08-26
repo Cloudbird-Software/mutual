@@ -114,7 +114,7 @@ func LoadScenario(name string, dataDir string) (*ScenarioData, error) {
 // 扩展套件度量 harness 对已知陷阱的鲁棒性，须配合 ScenarioOptions 的
 // blending / FallbackTopK 使用；断言与结论见 bench_extended_test.go 与
 // docs/experiments/2026-08-synthetic-data.md。
-var ExtendedScenarioNames = []string{"paraphrase", "decoy"}
+var ExtendedScenarioNames = []string{"paraphrase", "decoy", "messy"}
 
 // DefaultExtendedDataDir 定位扩展套件数据目录（data/bench-extended），
 // 与 DefaultDataDir 同样从工作目录向上逐级查找。

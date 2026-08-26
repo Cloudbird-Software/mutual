@@ -65,3 +65,29 @@ func TestExtendedDecoy(t *testing.T) {
 		t.Fatalf("blend+fallback 未达实验值: HR@3=%.3f NDCG@5=%.3f（实验 1.000/0.677）", tuned.HRAt3, tuned.NDCGAt5)
 	}
 }
+
+// TestExtendedMessy 真实语料：自然长句、大小写数字版本号混杂（K8s vs
+// kubernetes 类缩写陷阱、阶段/规模错配干扰者）。14 member × 12 pool。
+//
+// 实验基线：纯方向分 HR@3=1.000 但 envy=11——分数压缩让公平性崩坏；
+// blend(0.35/0.65) 把 envy 修到 2（embed 信号补齐弱方向缺口）。
+// 断言：tuned envy ≤ 2 且 HR 不低于 0.875。
+func TestExtendedMessy(t *testing.T) {
+	base, err := RunExtendedScenario("messy", ScenarioOptions{})
+	if err != nil {
+		t.Fatalf("基线: %v", err)
+	}
+	if base.HRAt3 < 0.875 {
+		t.Fatalf("真实语料基线退化: HR@3=%.3f（实验基线 1.000）", base.HRAt3)
+	}
+	if base.TotalEnvy() < 11 {
+		t.Fatalf("基线 envy 异常: %d（实验基线 11——若消失说明分数分布被改动）", base.TotalEnvy())
+	}
+	tuned, err := RunExtendedScenario("messy", ScenarioOptions{EmbedWeight: 0.35, LLMWeight: 0.65})
+	if err != nil {
+		t.Fatalf("blend: %v", err)
+	}
+	if tuned.HRAt3 < 0.875 || tuned.TotalEnvy() > 2 {
+		t.Fatalf("blend 未修复公平性: HR@3=%.3f envy=%d（实验 1.000/2）", tuned.HRAt3, tuned.TotalEnvy())
+	}
+}
