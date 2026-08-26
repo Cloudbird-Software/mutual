@@ -37,6 +37,34 @@ function ScorePairs(
 
     Instruction: {{ instruction }}
 
+    Judgment discipline:
+    - Semantic equivalence counts: paraphrased needs/skills with ZERO shared
+      words still count as a direct match ("cut cloud spend" <-> "teams
+      drowning in cloud spend"; cross-language equivalents count too:
+      商超铺货渠道 <-> ka retail entry). Judge meaning, not word overlap.
+    - Keyword echo without substance counts for nothing: a profile that
+      parrots the other side's words but shows no verifiable capability,
+      project, or number is worth little.
+    - Verifiability gate: claims with no number, name, license, or concrete
+      deliverable ("rich resources", "many years", "deep network") score as
+      if they were not made. Grade only on checkable specifics.
+    - Hard constraints first: if one side states a hard constraint
+      (geography, licensing, budget floor, timing, entity) and the other
+      side visibly violates it, the direction flowing to the constrained
+      side is capped at 0.1 regardless of every other signal.
+    - Stage and scale must fit: a perfect-domain partner at the wrong
+      stage/scale/budget is weak, not moderate.
+    - The two directions are independent. Score a_to_b and b_to_a separately
+      from each side's own needs. Do NOT mirror them by default.
+
+    Calibration anchors (use the full range, do not cluster around 0.6):
+    - 0.0-0.1: no value to that side (nothing offered meets any need, or a
+      hard constraint is violated)
+    - 0.15-0.3: weak (same domain, generic value, no concrete fit)
+    - 0.35-0.55: moderate (partially addresses the need, some substance)
+    - 0.6-0.8: strong (concrete skill directly meeting a concrete need)
+    - 0.85-1.0: rare (perfect complementarity plus shared direction)
+
     Score each pair below in both directions:
     1. How valuable is this connection for user1? (a_to_b score, 0.0-1.0)
     2. How valuable is this connection for user2? (b_to_a score, 0.0-1.0)
