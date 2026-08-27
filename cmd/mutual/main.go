@@ -56,6 +56,8 @@ evaluate 选项:
   --noise-scale F      surrogate 噪声幅度（默认 0.24）
   --fail-on-gate       门禁未达标时非零退出（CI 阻断）
   --json               以 JSON 输出评测报告
+  --extended           附带运行扩展陷阱套件（诊断输出，不计入门禁；
+                       生产姿态：blending 取配置值 + 保底推荐 + 资格过滤）
 
 calibrate 选项:
   --config PATH        配置文件路径（校准起点 blending 与参数来源，默认 config/default.yaml）
@@ -73,6 +75,7 @@ func cmdEvaluate(args []string) int {
 	noiseScale := fs.Float64("noise-scale", 0.24, "surrogate 噪声幅度")
 	failOnGate := fs.Bool("fail-on-gate", false, "门禁未达标时非零退出")
 	asJSON := fs.Bool("json", false, "以 JSON 输出评测报告")
+	extended := fs.Bool("extended", false, "附带运行扩展陷阱套件（诊断输出）")
 	_ = fs.Parse(args)
 
 	cfg, err := loadConfigOrDefault(*configPath)
@@ -151,6 +154,31 @@ func cmdEvaluate(args []string) int {
 			verdict = "PASS"
 		}
 		fmt.Printf("  结果   : %s (%s)\n", verdict, map[bool]string{true: "通过门禁", false: "未达门禁"}[passed])
+	}
+
+	if *extended {
+		blend := cfg.Blending()
+		fmt.Println("--- 扩展陷阱套件（诊断，不计入门禁；生产姿态运行）---")
+		for _, name := range bench.ExtendedScenarioNames {
+			r, err := bench.RunExtendedScenario(name, bench.ScenarioOptions{
+				Seed:                 *seed,
+				NoiseScale:           *noiseScale,
+				EmbedWeight:          blend.EmbedWeight,
+				LLMWeight:            blend.LLMWeight,
+				FallbackTopK:         3,
+				HardConstraintFilter: cfg.MatchingHardFilter(),
+			})
+			if err != nil {
+				fmt.Printf("  %-12s 运行失败: %v\n", name, err)
+				continue
+			}
+			extra := ""
+			if n, ok := r.Metadata["n_ineligible_pairs"].(int); ok && n > 0 {
+				extra = fmt.Sprintf(" 资格排除=%d", n)
+			}
+			fmt.Printf("  %-12s HR@3=%.3f NDCG@5=%.3f envy=%d scenarios=%d%s\n",
+				name, r.HRAt3, r.NDCGAt5, r.TotalEnvy(), r.TotalScenarios, extra)
+		}
 	}
 
 	if *failOnGate && !passed {

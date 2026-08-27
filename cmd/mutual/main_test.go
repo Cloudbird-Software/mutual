@@ -149,3 +149,21 @@ func TestCLIUnknownCommand(t *testing.T) {
 		t.Errorf("未知命令应退出 2: got %d\n%s", code, out)
 	}
 }
+
+// TestCLIEvaluateExtended --extended 诊断旗标：扩展套件全场景输出、
+// 资格过滤元数据可见、不影响门禁退出码。
+func TestCLIEvaluateExtended(t *testing.T) {
+	code, out := runCLI(t, "evaluate", "--config", filepath.Join("..", "..", "config", "default.yaml"), "--extended")
+	if code != 0 {
+		t.Fatalf("exit=%d", code)
+	}
+	for _, want := range []string{"扩展陷阱套件", "paraphrase", "decoy", "messy", "constraints", "zh_assoc", "资格排除"} {
+		if !strings.Contains(out, want) {
+			t.Fatalf("输出缺 %q:\n%s", want, out)
+		}
+	}
+	// 门禁结果仍在前段（--extended 不改变门禁判定）
+	if !strings.Contains(out, "PASS") && !strings.Contains(out, "FAIL") {
+		t.Fatalf("缺门禁判定:\n%s", out)
+	}
+}
