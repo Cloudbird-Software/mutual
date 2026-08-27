@@ -23,6 +23,9 @@ func TestDefaultValues(t *testing.T) {
 	if cfg.MatchingMinProfiles() != 2 {
 		t.Errorf("min_profiles_required: got %d want 2", cfg.MatchingMinProfiles())
 	}
+	if !cfg.MatchingHardFilter() {
+		t.Errorf("matching.hard_constraint_filter: got false want true（生产姿态默认开启）")
+	}
 	if cfg.NoveltyWindowMonths() != 6 {
 		t.Errorf("novelty_window_months: got %d want 6", cfg.NoveltyWindowMonths())
 	}

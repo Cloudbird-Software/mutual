@@ -485,6 +485,18 @@ func (c *Config) MatchingMinProfiles() int {
 	return toIntDefault(mmap(c.raw["matching"])["min_profiles_required"], 0)
 }
 
+// MatchingHardFilter 返回 matching.hard_constraint_filter——硬约束资格
+// 过滤（EligibilityExclusions 前置于候选选择，违反对不消耗 LLM 预算）。
+// 生产姿态默认开启；语料无显式约束标记时零行为差异（fail-safe：
+// 只认 "hard constraint/硬约束" 显式声明 + counterpart 可见违反自述）。
+func (c *Config) MatchingHardFilter() bool {
+	v := mmap(c.raw["matching"])["hard_constraint_filter"]
+	if b, ok := v.(bool); ok {
+		return b
+	}
+	return true
+}
+
 // NoveltyWindowMonths 返回 matching.novelty_window_months。
 func (c *Config) NoveltyWindowMonths() int {
 	return toIntDefault(mmap(c.raw["matching"])["novelty_window_months"], 6)
