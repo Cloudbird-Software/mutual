@@ -70,6 +70,8 @@ budgets:
 # 匹配：度约束与 novelty
 # ---------------------------------------------------------------------------
 matching:
+  hard_constraint_filter: true     # 硬约束资格过滤：显式声明的硬约束（如"须有大陆实体"）
+                                   # 遇 counterpart 可见违反自述 → 该对不进候选、不耗 LLM 预算
   b_min: 3                         # 每人最少匹配数
   b_max: 4                         # 每人最多匹配数
   min_profiles_required: 2         # 最少需要几个 profile 才能跑

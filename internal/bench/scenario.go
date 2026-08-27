@@ -114,7 +114,7 @@ func LoadScenario(name string, dataDir string) (*ScenarioData, error) {
 // 扩展套件度量 harness 对已知陷阱的鲁棒性，须配合 ScenarioOptions 的
 // blending / FallbackTopK 使用；断言与结论见 bench_extended_test.go 与
 // docs/experiments/2026-08-synthetic-data.md。
-var ExtendedScenarioNames = []string{"paraphrase", "decoy", "messy"}
+var ExtendedScenarioNames = []string{"paraphrase", "decoy", "messy", "constraints"}
 
 // DefaultExtendedDataDir 定位扩展套件数据目录（data/bench-extended），
 // 与 DefaultDataDir 同样从工作目录向上逐级查找。
@@ -233,6 +233,10 @@ type ScenarioOptions struct {
 	// 用 PrefMatrix 左行 top 候选补齐推荐列表（推荐列表 ≠ 匹配结果：
 	// 竞争失利者也不应空手而归）。零值 = 现行仅匹配边（golden 不变）。
 	FallbackTopK int
+	// HardConstraintFilter 启用硬约束资格过滤（engine.EligibilityExclusions）：
+	// 显式声明的硬约束遇 counterpart 可见违反自述 → 该对解前清零，
+	// 绝不参与匹配与推荐。零值 = 关闭（golden 不变）。
+	HardConstraintFilter bool
 }
 
 // RunScenario 跑单个场景：surrogate 打分 → pre_matrix → solve_match
@@ -300,6 +304,25 @@ func runScenarioData(data *ScenarioData, sseed int, opts ScenarioOptions, poolBM
 		}
 	}
 
+	// 硬约束资格过滤：违反对解前清零（双向），绝不参与匹配/推荐。
+	nIneligible := 0
+	if opts.HardConstraintFilter {
+		srcs := toExtracted(data.Members)
+		tgts := toExtracted(data.Pool)
+		excl, n := engine.EligibilityExclusions(srcs, tgts)
+		if n > 0 {
+			for i, mi := range memberIDs {
+				for j, pj := range poolIDs {
+					if excl[domain.StablePairID(mi, pj)] {
+						pm.PrefLeftToRight[i][j] = 0
+						pm.PrefRightToLeft[j][i] = 0
+					}
+				}
+			}
+			nIneligible = n
+		}
+	}
+
 	var poolPtr *int
 	if poolBMax > 0 {
 		poolPtr = &poolBMax
@@ -322,12 +345,37 @@ func runScenarioData(data *ScenarioData, sseed int, opts ScenarioOptions, poolBM
 	} else {
 		predictions, groundTruth = rankedByLeft(outcome.Edges, memberIDs, truth, topK)
 	}
-	return engine.Evaluate(engine.EvaluateInput{
+	report, err := engine.Evaluate(engine.EvaluateInput{
 		Predictions: predictions,
 		GroundTruth: groundTruth,
 		PrefMatrix:  pm,
 		MatchProb:   outcome.MatchProb,
 	})
+	if err != nil {
+		return domain.EvaluationReport{}, err
+	}
+	if nIneligible > 0 {
+		meta := report.Metadata
+		if meta == nil {
+			meta = map[string]any{}
+		}
+		meta["n_ineligible_pairs"] = nIneligible
+		report.Metadata = meta
+	}
+	return report, nil
+}
+
+// toExtracted 把保序分节转为 ExtractedSections（eligibility 检查用）。
+func toExtracted(list []signal.OrderedSections) []domain.ExtractedSections {
+	out := make([]domain.ExtractedSections, 0, len(list))
+	for _, s := range list {
+		secs := make(map[domain.SectionName]string, len(s.Sections))
+		for k, v := range s.Sections {
+			secs[domain.SectionName(k)] = v
+		}
+		out = append(out, domain.ExtractedSections{ID: domain.UserID(s.ID), Sections: secs})
+	}
+	return out
 }
 
 // RunScenarios 跑全部三场景。

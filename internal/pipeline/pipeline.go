@@ -458,7 +458,25 @@ func runMatchFlowWithMeta(in matchFlowInput) (*domain.MatchResult, map[string]an
 	recipe := cfg.Recipe()
 
 	similarity := engine.ComputeSimilarity(in.sourceBundle, in.targetBundle, cfg.RecipeConfig())
-	selected := engine.SelectPairs(similarity, selectBudgets(cfg), in.excludedPairs)
+	// 硬约束资格过滤（config matching.hard_constraint_filter）：违反对
+	// 前置于候选选择排除——不进 LLM 精排、不耗预算（MR-8 守护 honored）。
+	selectExcluded := in.excludedPairs
+	nIneligible := 0
+	if cfg.MatchingHardFilter() {
+		eligExcl, n := engine.EligibilityExclusions(in.sourceExtracted, in.poolExtracted)
+		if n > 0 {
+			merged := make(map[domain.PairID]bool, len(in.excludedPairs)+n)
+			for k, v := range in.excludedPairs {
+				merged[k] = v
+			}
+			for k, v := range eligExcl {
+				merged[k] = v
+			}
+			selectExcluded = merged
+			nIneligible = n
+		}
+	}
+	selected := engine.SelectPairs(similarity, selectBudgets(cfg), selectExcluded)
 
 	// sections 查询表：source + pool，后者覆盖前者（Python dict 语义）。
 	sectionsDict := engine.CreateSectionsDict(concatExtracted(in.sourceExtracted, in.poolExtracted))
@@ -517,6 +535,13 @@ func runMatchFlowWithMeta(in matchFlowInput) (*domain.MatchResult, map[string]an
 			len(unscored)))
 		reportData["notes"] = notes
 	}
+	if nIneligible > 0 {
+		notes, _ := reportData["notes"].([]string)
+		notes = append(notes, fmt.Sprintf(
+			"%d 对因硬约束可见违反被资格过滤（不进候选、不耗 LLM 预算）。",
+			nIneligible))
+		reportData["notes"] = notes
+	}
 
 	newPairs := make([]map[string]any, len(edges))
 	for i, e := range edges {
@@ -533,10 +558,11 @@ func runMatchFlowWithMeta(in matchFlowInput) (*domain.MatchResult, map[string]an
 		EnvyReport: outcome.EnvyReport,
 	}
 	meta := map[string]any{
-		"match_fallback":   false,
-		"n_selected_pairs": len(selected),
-		"n_scored_pairs":   len(selected) - len(unscored),
-		"n_unscored_pairs": len(unscored),
+		"match_fallback":     false,
+		"n_selected_pairs":   len(selected),
+		"n_scored_pairs":     len(selected) - len(unscored),
+		"n_unscored_pairs":   len(unscored),
+		"n_ineligible_pairs": nIneligible,
 	}
 	return result, meta, nil
 }
