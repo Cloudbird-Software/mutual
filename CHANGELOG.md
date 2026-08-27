@@ -15,6 +15,12 @@
   黄金对回到 top-1）。
 - pipeline：RunBatchMatch 二部全链路 e2e 测试（extract→hyde→embed→
   similarity→select→score→solve，替身确定性）+ 资格过滤端到端断言。
+- cli：mutual evaluate --extended——扩展陷阱套件诊断输出（生产姿态：
+  blending 取配置值 + FallbackTopK + 资格过滤；不计入门禁）。
+- bench：zh_assoc 中文语料入扩展套件（去克隆 v2：唯一 vision/相位/
+  需求措辞——初版同 vision 克隆使评测随噪声在 0.43-1.00 跳变，已在
+  生成器层修复）。CJK 修复后标准噪声实测 HR@3 1.000/0.867/0.767
+  （对照纯 ASCII 切词 0.00-0.33）。
 - metamorphic：夜间大规模回归（build tag nightly，make nightly）——
   Go 原生三领域语料生成器，同集 400 / 二部 300×450 的 MR 套件 +
   求解确定性/耗时守卫；日常 CI 零影响。
