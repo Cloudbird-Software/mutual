@@ -1,0 +1,401 @@
+{
+ "scenario": "zh_assoc",
+ "description": "chinese subset v2 30 pairs (de-cloned visions)",
+ "embedding_only": false,
+ "members": {
+  "zm00": {
+   "needs": "急需金融科技方向的lag free settlement能力合作伙伴，第1期布局重点",
+   "project": "金融科技项目第1期，涉及lag free settlement落地",
+   "skills": "lag free settlement 落地经验十年 交付团队完备",
+   "vision": "金融科技长期主义深耕"
+  },
+  "zm01": {
+   "needs": "急需精密制造方向的cold chain tolerances能力合作伙伴，第2期布局重点",
+   "project": "精密制造项目第2期，涉及cold chain tolerances落地",
+   "skills": "cold chain tolerances 落地经验十年 交付团队完备",
+   "vision": "精密制造数字化转型升级"
+  },
+  "zm02": {
+   "needs": "急需跨境物流方向的vendor managed inventory能力合作伙伴，第3期布局重点",
+   "project": "跨境物流项目第3期，涉及vendor managed inventory落地",
+   "skills": "vendor managed inventory 落地经验十年 交付团队完备",
+   "vision": "跨境物流产业链协同共赢"
+  },
+  "zm03": {
+   "needs": "急需品牌渠道方向的high mix low volume能力合作伙伴，第4期布局重点",
+   "project": "品牌渠道项目第4期，涉及high mix low volume落地",
+   "skills": "high mix low volume 落地经验十年 交付团队完备",
+   "vision": "品牌渠道品牌价值跃升"
+  },
+  "zm04": {
+   "needs": "急需生物医药方向的zero trust posture能力合作伙伴，第1期布局重点",
+   "project": "生物医药项目第1期，涉及zero trust posture落地",
+   "skills": "zero trust posture 落地经验十年 交付团队完备",
+   "vision": "生物医药可持续发展路径"
+  },
+  "zm05": {
+   "needs": "急需新能源方向的audited change control能力合作伙伴，第2期布局重点",
+   "project": "新能源项目第2期，涉及audited change control落地",
+   "skills": "audited change control 落地经验十年 交付团队完备",
+   "vision": "新能源精细化运营提效"
+  },
+  "zm06": {
+   "needs": "急需软件工程方向的multiregion failover能力合作伙伴，第3期布局重点",
+   "project": "软件工程项目第3期，涉及multiregion failover落地",
+   "skills": "multiregion failover 落地经验十年 交付团队完备",
+   "vision": "软件工程跨境双向赋能"
+  },
+  "zm07": {
+   "needs": "急需文创方向的graceful degradation能力合作伙伴，第4期布局重点",
+   "project": "文创项目第4期，涉及graceful degradation落地",
+   "skills": "graceful degradation 落地经验十年 交付团队完备",
+   "vision": "文创产融结合创新"
+  },
+  "zm08": {
+   "needs": "急需金融科技方向的metered billing能力合作伙伴，第1期布局重点",
+   "project": "金融科技项目第1期，涉及metered billing落地",
+   "skills": "metered billing 落地经验十年 交付团队完备",
+   "vision": "金融科技长期主义深耕"
+  },
+  "zm09": {
+   "needs": "急需精密制造方向的reconciliation engine能力合作伙伴，第2期布局重点",
+   "project": "精密制造项目第2期，涉及reconciliation engine落地",
+   "skills": "reconciliation engine 落地经验十年 交付团队完备",
+   "vision": "精密制造数字化转型升级"
+  },
+  "zm10": {
+   "needs": "急需跨境物流方向的dispute workflow能力合作伙伴，第3期布局重点",
+   "project": "跨境物流项目第3期，涉及dispute workflow落地",
+   "skills": "dispute workflow 落地经验十年 交付团队完备",
+   "vision": "跨境物流产业链协同共赢"
+  },
+  "zm11": {
+   "needs": "急需品牌渠道方向的chargeback defense能力合作伙伴，第4期布局重点",
+   "project": "品牌渠道项目第4期，涉及chargeback defense落地",
+   "skills": "chargeback defense 落地经验十年 交付团队完备",
+   "vision": "品牌渠道品牌价值跃升"
+  },
+  "zm12": {
+   "needs": "急需生物医药方向的traceability serialization能力合作伙伴，第1期布局重点",
+   "project": "生物医药项目第1期，涉及traceability serialization落地",
+   "skills": "traceability serialization 落地经验十年 交付团队完备",
+   "vision": "生物医药可持续发展路径"
+  },
+  "zm13": {
+   "needs": "急需新能源方向的tamper evident packaging能力合作伙伴，第2期布局重点",
+   "project": "新能源项目第2期，涉及tamper evident packaging落地",
+   "skills": "tamper evident packaging 落地经验十年 交付团队完备",
+   "vision": "新能源精细化运营提效"
+  },
+  "zm14": {
+   "needs": "急需软件工程方向的batch genealogy能力合作伙伴，第3期布局重点",
+   "project": "软件工程项目第3期，涉及batch genealogy落地",
+   "skills": "batch genealogy 落地经验十年 交付团队完备",
+   "vision": "软件工程跨境双向赋能"
+  },
+  "zm15": {
+   "needs": "急需文创方向的quarantine handling能力合作伙伴，第4期布局重点",
+   "project": "文创项目第4期，涉及quarantine handling落地",
+   "skills": "quarantine handling 落地经验十年 交付团队完备",
+   "vision": "文创产融结合创新"
+  },
+  "zm16": {
+   "needs": "急需金融科技方向的predictive maintenance能力合作伙伴，第1期布局重点",
+   "project": "金融科技项目第1期，涉及predictive maintenance落地",
+   "skills": "predictive maintenance 落地经验十年 交付团队完备",
+   "vision": "金融科技长期主义深耕"
+  },
+  "zm17": {
+   "needs": "急需精密制造方向的spare parts pooling能力合作伙伴，第2期布局重点",
+   "project": "精密制造项目第2期，涉及spare parts pooling落地",
+   "skills": "spare parts pooling 落地经验十年 交付团队完备",
+   "vision": "精密制造数字化转型升级"
+  },
+  "zm18": {
+   "needs": "急需跨境物流方向的tooling lifecycle能力合作伙伴，第3期布局重点",
+   "project": "跨境物流项目第3期，涉及tooling lifecycle落地",
+   "skills": "tooling lifecycle 落地经验十年 交付团队完备",
+   "vision": "跨境物流产业链协同共赢"
+  },
+  "zm19": {
+   "needs": "急需品牌渠道方向的first pass yield能力合作伙伴，第4期布局重点",
+   "project": "品牌渠道项目第4期，涉及first pass yield落地",
+   "skills": "first pass yield 落地经验十年 交付团队完备",
+   "vision": "品牌渠道品牌价值跃升"
+  },
+  "zm20": {
+   "needs": "急需生物医药方向的bonded zone operations能力合作伙伴，第1期布局重点",
+   "project": "生物医药项目第1期，涉及bonded zone operations落地",
+   "skills": "bonded zone operations 落地经验十年 交付团队完备",
+   "vision": "生物医药可持续发展路径"
+  },
+  "zm21": {
+   "needs": "急需新能源方向的tariff engineering能力合作伙伴，第2期布局重点",
+   "project": "新能源项目第2期，涉及tariff engineering落地",
+   "skills": "tariff engineering 落地经验十年 交付团队完备",
+   "vision": "新能源精细化运营提效"
+  },
+  "zm22": {
+   "needs": "急需软件工程方向的origin documentation能力合作伙伴，第3期布局重点",
+   "project": "软件工程项目第3期，涉及origin documentation落地",
+   "skills": "origin documentation 落地经验十年 交付团队完备",
+   "vision": "软件工程跨境双向赋能"
+  },
+  "zm23": {
+   "needs": "急需文创方向的cross docking能力合作伙伴，第4期布局重点",
+   "project": "文创项目第4期，涉及cross docking落地",
+   "skills": "cross docking 落地经验十年 交付团队完备",
+   "vision": "文创产融结合创新"
+  },
+  "zm24": {
+   "needs": "急需金融科技方向的reverse logistics能力合作伙伴，第1期布局重点",
+   "project": "金融科技项目第1期，涉及reverse logistics落地",
+   "skills": "reverse logistics 落地经验十年 交付团队完备",
+   "vision": "金融科技长期主义深耕"
+  },
+  "zm25": {
+   "needs": "急需精密制造方向的shelf planogram compliance能力合作伙伴，第2期布局重点",
+   "project": "精密制造项目第2期，涉及shelf planogram compliance落地",
+   "skills": "shelf planogram compliance 落地经验十年 交付团队完备",
+   "vision": "精密制造数字化转型升级"
+  },
+  "zm26": {
+   "needs": "急需跨境物流方向的in store demo staffing能力合作伙伴，第3期布局重点",
+   "project": "跨境物流项目第3期，涉及in store demo staffing落地",
+   "skills": "in store demo staffing 落地经验十年 交付团队完备",
+   "vision": "跨境物流产业链协同共赢"
+  },
+  "zm27": {
+   "needs": "急需品牌渠道方向的trade marketing roi能力合作伙伴，第4期布局重点",
+   "project": "品牌渠道项目第4期，涉及trade marketing roi落地",
+   "skills": "trade marketing roi 落地经验十年 交付团队完备",
+   "vision": "品牌渠道品牌价值跃升"
+  },
+  "zm28": {
+   "needs": "急需生物医药方向的distributor financing能力合作伙伴，第1期布局重点",
+   "project": "生物医药项目第1期，涉及distributor financing落地",
+   "skills": "distributor financing 落地经验十年 交付团队完备",
+   "vision": "生物医药可持续发展路径"
+  },
+  "zm29": {
+   "needs": "急需新能源方向的grey market control能力合作伙伴，第2期布局重点",
+   "project": "新能源项目第2期，涉及grey market control落地",
+   "skills": "grey market control 落地经验十年 交付团队完备",
+   "vision": "新能源精细化运营提效"
+  }
+ },
+ "pool": {
+  "zp00": {
+   "needs": "寻找金融科技产业链上下游伙伴，聚焦lag free settlement协同",
+   "project": "金融科技综合服务包第1批",
+   "skills": "提供lag free settlement全套解决方案与交付团队 驻场支持",
+   "vision": "金融科技长期主义深耕"
+  },
+  "zp01": {
+   "needs": "寻找精密制造产业链上下游伙伴，聚焦cold chain tolerances协同",
+   "project": "精密制造综合服务包第2批",
+   "skills": "提供cold chain tolerances全套解决方案与交付团队 驻场支持",
+   "vision": "精密制造数字化转型升级"
+  },
+  "zp02": {
+   "needs": "寻找跨境物流产业链上下游伙伴，聚焦vendor managed inventory协同",
+   "project": "跨境物流综合服务包第3批",
+   "skills": "提供vendor managed inventory全套解决方案与交付团队 驻场支持",
+   "vision": "跨境物流产业链协同共赢"
+  },
+  "zp03": {
+   "needs": "寻找品牌渠道产业链上下游伙伴，聚焦high mix low volume协同",
+   "project": "品牌渠道综合服务包第4批",
+   "skills": "提供high mix low volume全套解决方案与交付团队 驻场支持",
+   "vision": "品牌渠道品牌价值跃升"
+  },
+  "zp04": {
+   "needs": "寻找生物医药产业链上下游伙伴，聚焦zero trust posture协同",
+   "project": "生物医药综合服务包第5批",
+   "skills": "提供zero trust posture全套解决方案与交付团队 驻场支持",
+   "vision": "生物医药可持续发展路径"
+  },
+  "zp05": {
+   "needs": "寻找新能源产业链上下游伙伴，聚焦audited change control协同",
+   "project": "新能源综合服务包第1批",
+   "skills": "提供audited change control全套解决方案与交付团队 驻场支持",
+   "vision": "新能源精细化运营提效"
+  },
+  "zp06": {
+   "needs": "寻找软件工程产业链上下游伙伴，聚焦multiregion failover协同",
+   "project": "软件工程综合服务包第2批",
+   "skills": "提供multiregion failover全套解决方案与交付团队 驻场支持",
+   "vision": "软件工程跨境双向赋能"
+  },
+  "zp07": {
+   "needs": "寻找文创产业链上下游伙伴，聚焦graceful degradation协同",
+   "project": "文创综合服务包第3批",
+   "skills": "提供graceful degradation全套解决方案与交付团队 驻场支持",
+   "vision": "文创产融结合创新"
+  },
+  "zp08": {
+   "needs": "寻找金融科技产业链上下游伙伴，聚焦metered billing协同",
+   "project": "金融科技综合服务包第4批",
+   "skills": "提供metered billing全套解决方案与交付团队 驻场支持",
+   "vision": "金融科技长期主义深耕"
+  },
+  "zp09": {
+   "needs": "寻找精密制造产业链上下游伙伴，聚焦reconciliation engine协同",
+   "project": "精密制造综合服务包第5批",
+   "skills": "提供reconciliation engine全套解决方案与交付团队 驻场支持",
+   "vision": "精密制造数字化转型升级"
+  },
+  "zp10": {
+   "needs": "寻找跨境物流产业链上下游伙伴，聚焦dispute workflow协同",
+   "project": "跨境物流综合服务包第1批",
+   "skills": "提供dispute workflow全套解决方案与交付团队 驻场支持",
+   "vision": "跨境物流产业链协同共赢"
+  },
+  "zp11": {
+   "needs": "寻找品牌渠道产业链上下游伙伴，聚焦chargeback defense协同",
+   "project": "品牌渠道综合服务包第2批",
+   "skills": "提供chargeback defense全套解决方案与交付团队 驻场支持",
+   "vision": "品牌渠道品牌价值跃升"
+  },
+  "zp12": {
+   "needs": "寻找生物医药产业链上下游伙伴，聚焦traceability serialization协同",
+   "project": "生物医药综合服务包第3批",
+   "skills": "提供traceability serialization全套解决方案与交付团队 驻场支持",
+   "vision": "生物医药可持续发展路径"
+  },
+  "zp13": {
+   "needs": "寻找新能源产业链上下游伙伴，聚焦tamper evident packaging协同",
+   "project": "新能源综合服务包第4批",
+   "skills": "提供tamper evident packaging全套解决方案与交付团队 驻场支持",
+   "vision": "新能源精细化运营提效"
+  },
+  "zp14": {
+   "needs": "寻找软件工程产业链上下游伙伴，聚焦batch genealogy协同",
+   "project": "软件工程综合服务包第5批",
+   "skills": "提供batch genealogy全套解决方案与交付团队 驻场支持",
+   "vision": "软件工程跨境双向赋能"
+  },
+  "zp15": {
+   "needs": "寻找文创产业链上下游伙伴，聚焦quarantine handling协同",
+   "project": "文创综合服务包第1批",
+   "skills": "提供quarantine handling全套解决方案与交付团队 驻场支持",
+   "vision": "文创产融结合创新"
+  },
+  "zp16": {
+   "needs": "寻找金融科技产业链上下游伙伴，聚焦predictive maintenance协同",
+   "project": "金融科技综合服务包第2批",
+   "skills": "提供predictive maintenance全套解决方案与交付团队 驻场支持",
+   "vision": "金融科技长期主义深耕"
+  },
+  "zp17": {
+   "needs": "寻找精密制造产业链上下游伙伴，聚焦spare parts pooling协同",
+   "project": "精密制造综合服务包第3批",
+   "skills": "提供spare parts pooling全套解决方案与交付团队 驻场支持",
+   "vision": "精密制造数字化转型升级"
+  },
+  "zp18": {
+   "needs": "寻找跨境物流产业链上下游伙伴，聚焦tooling lifecycle协同",
+   "project": "跨境物流综合服务包第4批",
+   "skills": "提供tooling lifecycle全套解决方案与交付团队 驻场支持",
+   "vision": "跨境物流产业链协同共赢"
+  },
+  "zp19": {
+   "needs": "寻找品牌渠道产业链上下游伙伴，聚焦first pass yield协同",
+   "project": "品牌渠道综合服务包第5批",
+   "skills": "提供first pass yield全套解决方案与交付团队 驻场支持",
+   "vision": "品牌渠道品牌价值跃升"
+  },
+  "zp20": {
+   "needs": "寻找生物医药产业链上下游伙伴，聚焦bonded zone operations协同",
+   "project": "生物医药综合服务包第1批",
+   "skills": "提供bonded zone operations全套解决方案与交付团队 驻场支持",
+   "vision": "生物医药可持续发展路径"
+  },
+  "zp21": {
+   "needs": "寻找新能源产业链上下游伙伴，聚焦tariff engineering协同",
+   "project": "新能源综合服务包第2批",
+   "skills": "提供tariff engineering全套解决方案与交付团队 驻场支持",
+   "vision": "新能源精细化运营提效"
+  },
+  "zp22": {
+   "needs": "寻找软件工程产业链上下游伙伴，聚焦origin documentation协同",
+   "project": "软件工程综合服务包第3批",
+   "skills": "提供origin documentation全套解决方案与交付团队 驻场支持",
+   "vision": "软件工程跨境双向赋能"
+  },
+  "zp23": {
+   "needs": "寻找文创产业链上下游伙伴，聚焦cross docking协同",
+   "project": "文创综合服务包第4批",
+   "skills": "提供cross docking全套解决方案与交付团队 驻场支持",
+   "vision": "文创产融结合创新"
+  },
+  "zp24": {
+   "needs": "寻找金融科技产业链上下游伙伴，聚焦reverse logistics协同",
+   "project": "金融科技综合服务包第5批",
+   "skills": "提供reverse logistics全套解决方案与交付团队 驻场支持",
+   "vision": "金融科技长期主义深耕"
+  },
+  "zp25": {
+   "needs": "寻找精密制造产业链上下游伙伴，聚焦shelf planogram compliance协同",
+   "project": "精密制造综合服务包第1批",
+   "skills": "提供shelf planogram compliance全套解决方案与交付团队 驻场支持",
+   "vision": "精密制造数字化转型升级"
+  },
+  "zp26": {
+   "needs": "寻找跨境物流产业链上下游伙伴，聚焦in store demo staffing协同",
+   "project": "跨境物流综合服务包第2批",
+   "skills": "提供in store demo staffing全套解决方案与交付团队 驻场支持",
+   "vision": "跨境物流产业链协同共赢"
+  },
+  "zp27": {
+   "needs": "寻找品牌渠道产业链上下游伙伴，聚焦trade marketing roi协同",
+   "project": "品牌渠道综合服务包第3批",
+   "skills": "提供trade marketing roi全套解决方案与交付团队 驻场支持",
+   "vision": "品牌渠道品牌价值跃升"
+  },
+  "zp28": {
+   "needs": "寻找生物医药产业链上下游伙伴，聚焦distributor financing协同",
+   "project": "生物医药综合服务包第4批",
+   "skills": "提供distributor financing全套解决方案与交付团队 驻场支持",
+   "vision": "生物医药可持续发展路径"
+  },
+  "zp29": {
+   "needs": "寻找新能源产业链上下游伙伴，聚焦grey market control协同",
+   "project": "新能源综合服务包第5批",
+   "skills": "提供grey market control全套解决方案与交付团队 驻场支持",
+   "vision": "新能源精细化运营提效"
+  }
+ },
+ "ground_truth": {
+  "zm00": "zp00",
+  "zm01": "zp01",
+  "zm02": "zp02",
+  "zm03": "zp03",
+  "zm04": "zp04",
+  "zm05": "zp05",
+  "zm06": "zp06",
+  "zm07": "zp07",
+  "zm08": "zp08",
+  "zm09": "zp09",
+  "zm10": "zp10",
+  "zm11": "zp11",
+  "zm12": "zp12",
+  "zm13": "zp13",
+  "zm14": "zp14",
+  "zm15": "zp15",
+  "zm16": "zp16",
+  "zm17": "zp17",
+  "zm18": "zp18",
+  "zm19": "zp19",
+  "zm20": "zp20",
+  "zm21": "zp21",
+  "zm22": "zp22",
+  "zm23": "zp23",
+  "zm24": "zp24",
+  "zm25": "zp25",
+  "zm26": "zp26",
+  "zm27": "zp27",
+  "zm28": "zp28",
+  "zm29": "zp29"
+ }
+}

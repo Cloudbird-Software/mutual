@@ -154,3 +154,16 @@ func TestExtendedConstraintsOrderInversion(t *testing.T) {
 			nsw("m1", "pX1"), nsw("m1", "p1"))
 	}
 }
+
+// TestExtendedZhAssoc 中文语料守护（跨语言离线可观测性，commit d40027f
+// 的 bench 层回归防线）：CJK 字符二元组使中文方向分可观测——纯 ASCII
+// 切词退化时 HR@3 崩至 0.33 以下（历史基线），现行必须满分。
+func TestExtendedZhAssoc(t *testing.T) {
+	r, err := RunExtendedScenario("zh_assoc", ScenarioOptions{})
+	if err != nil {
+		t.Fatalf("运行: %v", err)
+	}
+	if r.HRAt3 < 1.0 {
+		t.Fatalf("中文语料 HR@3=%.3f（want 1.000）——CJK 分词可能退化", r.HRAt3)
+	}
+}
