@@ -316,3 +316,23 @@ func TestScoreMatrixBlendedMath(t *testing.T) {
 		t.Fatalf("BToA: got %v want %v", got["m"]["p"].BToA, wantBToA)
 	}
 }
+
+// TestTokenizeCJK CJK 二元组：中文画像的离线可观测性（跨语言盲区修复）。
+// ASCII 路径不受影响（golden 语义不变）；英文 token 与中文二元组并存。
+func TestTokenizeCJK(t *testing.T) {
+	got := Tokenize("急需金融科技方向的lag free settlement能力")
+	joined := strings.Join(got, "|")
+	for _, want := range []string{"急需", "需金", "金融", "融科", "科技", "lag", "settlement"} {
+		if !strings.Contains(joined, want) {
+			t.Fatalf("缺 %q: %v", want, got)
+		}
+	}
+	// 纯 ASCII 输入零变化（golden 安全）
+	if got := Tokenize("Rust Kubernetes FinOps 42"); strings.Join(got, " ") != "rust kubernetes finops 42" {
+		t.Fatalf("ASCII 路径被扰动: %v", got)
+	}
+	// 英文路径行为不变：token 集合与旧实现一致
+	if got := Tokenize("Hello, World! pipeline-2"); strings.Join(got, " ") != "hello world pipeline 2" {
+		t.Fatalf("英文切词异常: %v", got)
+	}
+}
