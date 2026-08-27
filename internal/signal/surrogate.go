@@ -32,9 +32,50 @@ var sectionJoinOrder = []string{"needs", "project", "skills", "vision"}
 
 var wordRE = regexp.MustCompile(`[a-z0-9]+`)
 
-// Tokenize 小写化并按非字母数字切词（画像文本约定为英文关键词风格）。
+// Tokenize 小写化并切词：ASCII 走 [a-z0-9]+ 词切分（与 Python 基线
+// 逐位一致，golden 语义不变）；CJK 字符追加二元组（无分词器的廉价
+// 语义近似——海外商人↔本地企业等跨语言画像的离线评测可观测性，
+// 2026-08 实验 R4：纯 ASCII 切词下中文侧词法全盲，NSW 几何均值
+// 湮灭黄金对，LLM 行级 10/10 全解）。
 func Tokenize(text string) []string {
-	return wordRE.FindAllString(lower(text), -1)
+	t := lower(text)
+	toks := wordRE.FindAllString(t, -1)
+	toks = append(toks, cjkBigrams(t)...)
+	return toks
+}
+
+// cjkBigrams 提取 CJK 统一表意文字区段的字符二元组（单字原样保留）。
+// 扩展区（ExtA/Compat/B/C/D）与日文假名不覆盖：合成语料以简中为主，
+// 按需扩展。
+func cjkBigrams(text string) []string {
+	var out []string
+	runes := []rune(text)
+	i := 0
+	for i < len(runes) {
+		if !isHan(runes[i]) {
+			i++
+			continue
+		}
+		j := i
+		for j < len(runes) && isHan(runes[j]) {
+			j++
+		}
+		for k := i; k < j; k++ {
+			if k+1 < j {
+				out = append(out, string(runes[k:k+2]))
+			} else if k == i {
+				// 单字 run：保留单字（可与其他 run 的二元组区分开）
+				out = append(out, string(runes[k]))
+			}
+		}
+		i = j
+	}
+	return out
+}
+
+func isHan(r rune) bool {
+	return (r >= 0x4E00 && r <= 0x9FFF) || // CJK 统一表意文字
+		(r >= 0x3400 && r <= 0x4DBF) // 扩展 A
 }
 
 func lower(s string) string {

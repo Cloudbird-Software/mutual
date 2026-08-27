@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"os"
 	"testing"
+
+	"github.com/Cloudbird-Software/mutual/internal/signal"
 )
 
 // loadFile 从 data 目录加载场景文件（official 三场景 + 扩展陷阱套件）。
@@ -64,6 +66,35 @@ func TestLadderOracle(t *testing.T) {
 	for i := 1; i < len(nsw); i++ {
 		if nsw[i] <= nsw[i-1] {
 			t.Fatalf("阶梯非单调: nsw=%v", nsw)
+		}
+	}
+}
+
+// TestMetamorphicCJK 中文画像的 MR 守护（跨语言盲区修复的回归防线：
+// CJK 二元组让中文侧信号可观测，MR 全链路在双语语料上成立）。
+func TestMetamorphicCJK(t *testing.T) {
+	s := &Scenario{
+		Members: []signal.OrderedSections{
+			{ID: "zm0", Sections: map[string]string{
+				"needs": "急需金融科技方向的清算能力合作伙伴", "project": "金融科技项目",
+				"skills": "清算落地经验十年", "vision": "金融科技长期主义"}},
+			{ID: "zm1", Sections: map[string]string{
+				"needs": "寻找精密制造质检体系辅导", "project": "制造项目",
+				"skills": "数控加工产能", "vision": "精密制造长期主义"}},
+		},
+		Pool: []signal.OrderedSections{
+			{ID: "zp0", Sections: map[string]string{
+				"needs": "寻找金融科技产业链伙伴", "project": "金融服务包",
+				"skills": "提供清算结算全套方案", "vision": "金融科技长期主义"}},
+			{ID: "zp1", Sections: map[string]string{
+				"needs": "需要制造企业客户", "project": "质检服务包",
+				"skills": "质检体系认证辅导团队", "vision": "精密制造长期主义"}},
+		},
+		GroundTruth: map[string]string{"zm0": "zp0", "zm1": "zp1"},
+	}
+	for _, r := range RunSuite(s) {
+		if !r.Pass {
+			t.Errorf("%s — %s", r.Name, r.Detail)
 		}
 	}
 }
