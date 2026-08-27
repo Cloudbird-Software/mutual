@@ -238,7 +238,11 @@ MR-6 克隆确定性 / MR-7 已知值阶梯 / MR-8 排除对 honored。
 
 R8 建议 #3 落地：`signal.Tokenize` 追加 CJK 字符二元组（英文路径
 逐位不变，golden 全绿）。三领域中文合成语料 HR@3 **0.00-0.33 →
-1.000×3**；MR 套件新增中文语料守护（TestMetamorphicCJK）。
+1.000 / 0.867 / 0.767**（标准噪声 0.24，去克隆语料 v2；初版语料存在
+同 vision 克隆导致噪声敏感跳变 0.43-1.00，已在生成器层修复——
+教训：合成语料的克隆结构会让评测结论随噪声翻转，语料自身也要过
+MR 的"无克隆"关）。zh_assoc 入扩展套件作 bench 层守护
+（TestExtendedZhAssoc），MR 套件另有 TestMetamorphicCJK。
 
 ## M5. 第三轮结论
 
