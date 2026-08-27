@@ -5,6 +5,19 @@
 ## [Unreleased]
 
 ### Added
+- engine：硬约束资格判定（EligibilityExclusions）——显式声明的硬约束
+  （"hard constraint/硬约束" 标记门控，地理实体/本地驻场两族）遇
+  counterpart 可见违反自述 → 该对前置于候选选择排除（不进 LLM 精排、
+  不耗预算，MR-8 守护 honored）。fail-safe：无显式声明不触发、无可见
+  违反正据不排除（交 LLM 层）。config matching.hard_constraint_filter
+  默认开启（golden 语料无约束标记，零行为差异）；bench ScenarioOptions
+  同步支持（constraints 扩展场景：关闭过滤时违反者排序倒挂，开启后
+  黄金对回到 top-1）。
+- pipeline：RunBatchMatch 二部全链路 e2e 测试（extract→hyde→embed→
+  similarity→select→score→solve，替身确定性）+ 资格过滤端到端断言。
+- metamorphic：夜间大规模回归（build tag nightly，make nightly）——
+  Go 原生三领域语料生成器，同集 400 / 二部 300×450 的 MR 套件 +
+  求解确定性/耗时守卫；日常 CI 零影响。
 - internal/metamorphic：蜕变测试套件常驻 CI——8 条 MR（唯一噪声不变性/
   重复不变性/泛化降级/堆砌反超率测量/干扰者不偷位/克隆确定性/已知值
   阶梯/排除对 honored），六场景 + 中文语料全绿；LLM 冷上下文校准变异
