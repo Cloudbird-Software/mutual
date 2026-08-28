@@ -10,11 +10,12 @@ import (
 	"github.com/Cloudbird-Software/mutual/internal/rng"
 )
 
-// TestFakeLLMScoringRoute 打分类路径：按 prompt 中出现的 cohort id
-// 查表（spec/04-fixtures.md §7.1，契约由测试守护）。
+// TestFakeLLMScoringRoute 打分类路径：按块头结构化查表（spec/04
+// §7.1 的路由语义已收紧——RT-2026-08 #35：全文 Contains 搜索可被
+// 画像文本劫持，块头由 engine.buildScoringPrompt 构造，单块也带）。
 func TestFakeLLMScoringRoute(t *testing.T) {
 	f := &FakeLLM{}
-	raw, err := f.CompleteScore("Score (alice, bob) respond a_to_b b_to_a", "m")
+	raw, err := f.CompleteScore("### Pair 1: (bob, alice)\nScore (alice, bob) respond a_to_b b_to_a", "m")
 	if err != nil {
 		t.Fatalf("CompleteScore: %v", err)
 	}
@@ -27,6 +28,23 @@ func TestFakeLLMScoringRoute(t *testing.T) {
 	}
 	if resp.AToB != 0.85 || resp.BToA != 0.90 {
 		t.Errorf("alice__bob 分数表: got %+v want 0.85/0.90", resp)
+	}
+
+	// 无块头（非标准调用）→ 兜底 0.5/0.5，画像文本中的 cohort id
+	// 不能劫持路由（#35 回归防线）。
+	raw2, err := f.CompleteScore("Score (alice, bob) respond a_to_b b_to_a", "m")
+	if err != nil {
+		t.Fatalf("CompleteScore: %v", err)
+	}
+	var resp2 struct {
+		AToB float64 `json:"a_to_b"`
+		BToA float64 `json:"b_to_a"`
+	}
+	if err := json.Unmarshal([]byte(raw2), &resp2); err != nil {
+		t.Fatalf("打分响应应为 JSON: %v", err)
+	}
+	if resp2.AToB != 0.5 || resp2.BToA != 0.5 {
+		t.Errorf("无块头应兜底 0.5/0.5（路由不可被文本劫持）: got %+v", resp2)
 	}
 }
 

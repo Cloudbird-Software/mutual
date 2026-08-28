@@ -16,7 +16,6 @@ import (
 	"regexp"
 	"sort"
 	"strconv"
-	"strings"
 
 	"github.com/Cloudbird-Software/mutual/internal/domain"
 	"github.com/Cloudbird-Software/mutual/internal/rng"
@@ -36,7 +35,8 @@ var fakeScoreTable = map[string][2]float64{
 	"carol__david": {0.35, 0.65},
 }
 
-// fakeCohortIDs 是 fake 路由识别的 cohort id 全集。
+// fakeCohortIDs 是 spec/04-fixtures.md §7.1 记录的 cohort id 全集
+// （历史全文路由语义；现行路由只认块头结构化位置，见 CompleteScore）。
 var fakeCohortIDs = []string{"alice", "bob", "carol", "david"}
 
 // FakeLLM 满足 engine.LLMClient（按阶段类型化的四方法）。
@@ -53,17 +53,17 @@ const introResponse = `{"intro": "Fake intro.", "starter_topics": "Fake topic."}
 
 // CompleteScore 打分类路径：按 prompt 中出现的 cohort id 查表（§7.1）。
 //
-// 批量契约（CodeRabbit）：prompt 含 "### Pair N: (u1, u2)" 分块时，
-// 逐块查表并按块序返回 JSON 数组（engine.parseScoringResponse 对
-// batch>1 只接受数组——替身只回单对象会让整个 batch 记 unscored，
-// 批量路径永远测不到）。单块保持单对象（Python conftest 逐位对齐）；
-// 无分块标记的非批量 prompt 走整段查表（旧路径）。
+// 路由语义收紧（RT-2026-08 #35）：查表只认 "### Pair N: (u1, u2)" 块头
+// 的**结构化位置**（engine.buildScoringPrompt 对单块也渲染块头）；
+// 无块头的 prompt 返回兜底 0.5/0.5——不再做全文 Contains 搜索（画像
+// 文本写 "alice bob" 即可命中预构建高分表的劫持面）。golden 分数
+// 不受影响（golden 全部走块头路径，钉的是分数不是路由实现）。
 func (f *FakeLLM) CompleteScore(prompt string, model string) (string, error) {
 	_ = model
 	f.CallCount++
 	blocks := pairBlockRE.FindAllStringSubmatch(prompt, -1)
 	if len(blocks) == 0 {
-		return scoringResponse(prompt), nil
+		return defaultScoreResponse, nil
 	}
 	objs := make([]map[string]any, 0, len(blocks))
 	for _, b := range blocks {
@@ -116,26 +116,6 @@ func (f *FakeLLM) CompleteIntroduce(prompt string, model string) (string, error)
 	_ = model
 	f.CallCount++
 	return introResponse, nil
-}
-
-// scoringResponse 打分类路径：按 prompt 中出现的 cohort id 查表（§7.1）。
-func scoringResponse(prompt string) string {
-	var found []string
-	for _, id := range fakeCohortIDs {
-		if strings.Contains(prompt, id) {
-			found = append(found, id)
-		}
-	}
-	sort.Strings(found)
-	if len(found) >= 2 {
-		if entry, ok := fakeScoreTable[found[0]+"__"+found[1]]; ok {
-			out, _ := json.Marshal(map[string]any{
-				"a_to_b": entry[0], "b_to_a": entry[1], "reasoning": "fake",
-			})
-			return string(out)
-		}
-	}
-	return defaultScoreResponse
 }
 
 // FakeEmbedder 满足 Embedder 接口：每条文本独立播种的 128 维 randn。

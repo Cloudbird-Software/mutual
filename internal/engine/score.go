@@ -364,8 +364,12 @@ func parseScoringResponse(text string, expectedPairs int) []*struct{ a, b float6
 	default:
 		return nil
 	}
-	if expectedPairs == 1 && len(items) > 1 {
-		items = items[:1]
+	// 数量校验（RT-2026-08 #31/#36）：响应对象数必须与请求对数严格
+	// 相等——多余项按位置消费会错配分数（伪造块头注入面），缺失/多余
+	// 都整批拒绝（fail loud → unscored 保留 embed 权重），绝不静默
+	// 截断或按位置对齐到污染响应。
+	if len(items) != expectedPairs {
+		return nil
 	}
 
 	type ds = struct{ a, b float64 }
