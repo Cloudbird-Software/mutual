@@ -65,7 +65,7 @@ mock LLM 实验（strict 人设，完全抵御注入的情况下）：
 
 ## 复现方式
 
-临时探针包 `internal/advprobe/`（红队实验用，审查后可删）：
+临时探针包 `internal/advprobe/`（红队实验用，位于本次审查工作区、未提交仓库；需要复现可在 PR 中附上）：
 
 ```bash
 go test ./internal/advprobe/ -run TestAdvProbeSurrogate -v      # 发现 1、2（确定性）
