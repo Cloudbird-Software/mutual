@@ -1,0 +1,52 @@
+Score each of the 2 pairs below, in both directions. Respond ONLY with a JSON array of exactly 2 objects, in order, each of the form {"a_to_b": <float 0.0-1.0>, "b_to_a": <float 0.0-1.0>, "reasoning": "<brief>"}.
+
+### Pair 1: (m2, p2)
+You are a matchmaking expert. Score the potential connection between two people.
+
+Person A (user1):
+needs: need pytorch nlp engineer for domain finetuning and evaluation
+project: legal document classifier pytorch transformers
+skills: python data pipelines airflow
+vision: practical nlp for regulated industries
+
+Person B (user2):
+needs: want domain datasets with clear evaluation criteria
+project: nlp finetuning benchmarks pytorch transformers
+skills: pytorch nlp transformers gpu finetuning evaluation
+vision: practical nlp for regulated industries
+
+Instruction: Score this match on the value of connecting these two people. The primary signal is how directly each person's skills can address the other's project needs — the best matches are where both bring something the other needs, but strong one-directional signal is also valuable. Also reward a shared direction or overlapping ambition. Consider specificity — a vague overlap is less valuable than a concrete skill meeting a concrete need.
+
+
+Score from two directions:
+1. How valuable is this connection for Person A? (A→B score, 0.0-1.0)
+2. How valuable is this connection for Person B? (B→A score, 0.0-1.0)
+
+Respond in JSON:
+{"a_to_b": <float>, "b_to_a": <float>, "reasoning": "<brief>"}
+
+
+### Pair 2: (p2, zoe)
+You are a matchmaking expert. Score the potential connection between two people.
+
+Person A (user1):
+needs: want domain datasets with clear evaluation criteria
+project: nlp finetuning benchmarks pytorch transformers
+skills: pytorch nlp transformers gpu finetuning evaluation
+vision: practical nlp for regulated industries
+
+Person B (user2):
+needs: need rust blockchain consensus audit formal verification react accessibility wcag design systems pytorch nlp finetuning evaluation kubernetes terraform aws finops fpga verilog dsp radar signal processing nih grant writing irb clinical trials swift visionos arkit realitykit spatial ui supply chain forecasting python optimization gpu inference optimization senior fullstack mentor backend databases
+project: company internal forms tool react html css simple form pages
+skills: react html css typescript node rust blockchain consensus performance formal verification pytorch nlp transformers gpu finetuning evaluation kubernetes terraform aws finops automation cost fpga verilog dsp radar signal processing timing grant writing nih clinical trials irb compliance swift visionos arkit realitykit spatial ui supply chain forecasting python optimization simulation accessibility wcag design systems distributed systems data pipelines mentoring
+vision: decentralized resilient infrastructure accessible tools for everyone practical ai for regulated industries efficient cloud engineering safer autonomous sensing evidence based healthcare at scale immersive learning environments resilient data driven supply chains growing into fullstack engineer
+
+Instruction: Score this match on the value of connecting these two people. The primary signal is how directly each person's skills can address the other's project needs — the best matches are where both bring something the other needs, but strong one-directional signal is also valuable. Also reward a shared direction or overlapping ambition. Consider specificity — a vague overlap is less valuable than a concrete skill meeting a concrete need.
+
+
+Score from two directions:
+1. How valuable is this connection for Person A? (A→B score, 0.0-1.0)
+2. How valuable is this connection for Person B? (B→A score, 0.0-1.0)
+
+Respond in JSON:
+{"a_to_b": <float>, "b_to_a": <float>, "reasoning": "<brief>"}

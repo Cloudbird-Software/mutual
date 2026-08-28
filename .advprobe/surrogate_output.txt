@@ -1,0 +1,750 @@
+=== RUN   TestAdvProbeSurrogate
+=== ADVPROBE SURROGATE RESULTS ===
+{
+  "V0_honest-baseline": {
+    "envy": 0,
+    "golden_kept": 8,
+    "golden_lost": null,
+    "golden_pair_nsw": [
+      {
+        "a_to_b": 0.593,
+        "b_to_a": 0.293,
+        "nsw": 0.417,
+        "pair": "m6-p6"
+      },
+      {
+        "a_to_b": 0.699,
+        "b_to_a": 0.2,
+        "nsw": 0.374,
+        "pair": "m7-p7"
+      },
+      {
+        "a_to_b": 0.529,
+        "b_to_a": 0.47,
+        "nsw": 0.499,
+        "pair": "m0-p0"
+      },
+      {
+        "a_to_b": 0.518,
+        "b_to_a": 0.39,
+        "nsw": 0.449,
+        "pair": "m1-p1"
+      },
+      {
+        "a_to_b": 0.6,
+        "b_to_a": 0.2,
+        "nsw": 0.346,
+        "pair": "m2-p2"
+      },
+      {
+        "a_to_b": 0.575,
+        "b_to_a": 0.2,
+        "nsw": 0.339,
+        "pair": "m3-p3"
+      },
+      {
+        "a_to_b": 0.644,
+        "b_to_a": 0.31,
+        "nsw": 0.447,
+        "pair": "m4-p4"
+      },
+      {
+        "a_to_b": 0.441,
+        "b_to_a": 0.301,
+        "nsw": 0.364,
+        "pair": "m5-p5"
+      }
+    ],
+    "pool_partners": {
+      "p0": "m0",
+      "p1": "m1",
+      "p2": "m2",
+      "p3": "m3",
+      "p4": "m4",
+      "p5": "m5",
+      "p6": "m6",
+      "p7": "m7"
+    },
+    "total_edges": 8,
+    "zoe_all_pairs": [
+      {
+        "a_to_b": 0,
+        "b_to_a": 0,
+        "nsw": 0,
+        "partner": "p0"
+      },
+      {
+        "a_to_b": 0.026,
+        "b_to_a": 0.031,
+        "nsw": 0.028,
+        "partner": "p1"
+      },
+      {
+        "a_to_b": 0,
+        "b_to_a": 0,
+        "nsw": 0,
+        "partner": "p2"
+      },
+      {
+        "a_to_b": 0,
+        "b_to_a": 0,
+        "nsw": 0,
+        "partner": "p3"
+      },
+      {
+        "a_to_b": 0,
+        "b_to_a": 0,
+        "nsw": 0,
+        "partner": "p4"
+      },
+      {
+        "a_to_b": 0,
+        "b_to_a": 0,
+        "nsw": 0,
+        "partner": "p5"
+      },
+      {
+        "a_to_b": 0,
+        "b_to_a": 0,
+        "nsw": 0,
+        "partner": "p6"
+      },
+      {
+        "a_to_b": 0,
+        "b_to_a": 0,
+        "nsw": 0,
+        "partner": "p7"
+      }
+    ],
+    "zoe_edges": []
+  },
+  "V1_exaggeration": {
+    "envy": 0,
+    "golden_kept": 8,
+    "golden_lost": null,
+    "golden_pair_nsw": [
+      {
+        "a_to_b": 0.441,
+        "b_to_a": 0.301,
+        "nsw": 0.364,
+        "pair": "m5-p5"
+      },
+      {
+        "a_to_b": 0.593,
+        "b_to_a": 0.293,
+        "nsw": 0.417,
+        "pair": "m6-p6"
+      },
+      {
+        "a_to_b": 0.699,
+        "b_to_a": 0.2,
+        "nsw": 0.374,
+        "pair": "m7-p7"
+      },
+      {
+        "a_to_b": 0.529,
+        "b_to_a": 0.47,
+        "nsw": 0.499,
+        "pair": "m0-p0"
+      },
+      {
+        "a_to_b": 0.518,
+        "b_to_a": 0.39,
+        "nsw": 0.449,
+        "pair": "m1-p1"
+      },
+      {
+        "a_to_b": 0.6,
+        "b_to_a": 0.2,
+        "nsw": 0.346,
+        "pair": "m2-p2"
+      },
+      {
+        "a_to_b": 0.575,
+        "b_to_a": 0.2,
+        "nsw": 0.339,
+        "pair": "m3-p3"
+      },
+      {
+        "a_to_b": 0.644,
+        "b_to_a": 0.31,
+        "nsw": 0.447,
+        "pair": "m4-p4"
+      }
+    ],
+    "pool_partners": {
+      "p0": "m0",
+      "p1": "m1",
+      "p2": "m2",
+      "p3": "m3",
+      "p4": "m4",
+      "p5": "m5",
+      "p6": "m6",
+      "p7": "m7"
+    },
+    "total_edges": 8,
+    "zoe_all_pairs": [
+      {
+        "a_to_b": 0.18,
+        "b_to_a": 0.141,
+        "nsw": 0.16,
+        "partner": "p0"
+      },
+      {
+        "a_to_b": 0.027,
+        "b_to_a": 0.113,
+        "nsw": 0.055,
+        "partner": "p1"
+      },
+      {
+        "a_to_b": 0.144,
+        "b_to_a": 0.118,
+        "nsw": 0.13,
+        "partner": "p2"
+      },
+      {
+        "a_to_b": 0,
+        "b_to_a": 0,
+        "nsw": 0,
+        "partner": "p3"
+      },
+      {
+        "a_to_b": 0,
+        "b_to_a": 0.016,
+        "nsw": 0,
+        "partner": "p4"
+      },
+      {
+        "a_to_b": 0,
+        "b_to_a": 0,
+        "nsw": 0,
+        "partner": "p5"
+      },
+      {
+        "a_to_b": 0.179,
+        "b_to_a": 0.089,
+        "nsw": 0.126,
+        "partner": "p6"
+      },
+      {
+        "a_to_b": 0,
+        "b_to_a": 0,
+        "nsw": 0,
+        "partner": "p7"
+      }
+    ],
+    "zoe_edges": []
+  },
+  "V2_keyword-stuffing": {
+    "envy": 0,
+    "golden_kept": 8,
+    "golden_lost": null,
+    "golden_pair_nsw": [
+      {
+        "a_to_b": 0.575,
+        "b_to_a": 0.2,
+        "nsw": 0.339,
+        "pair": "m3-p3"
+      },
+      {
+        "a_to_b": 0.644,
+        "b_to_a": 0.31,
+        "nsw": 0.447,
+        "pair": "m4-p4"
+      },
+      {
+        "a_to_b": 0.441,
+        "b_to_a": 0.301,
+        "nsw": 0.364,
+        "pair": "m5-p5"
+      },
+      {
+        "a_to_b": 0.593,
+        "b_to_a": 0.293,
+        "nsw": 0.417,
+        "pair": "m6-p6"
+      },
+      {
+        "a_to_b": 0.699,
+        "b_to_a": 0.2,
+        "nsw": 0.374,
+        "pair": "m7-p7"
+      },
+      {
+        "a_to_b": 0.529,
+        "b_to_a": 0.47,
+        "nsw": 0.499,
+        "pair": "m0-p0"
+      },
+      {
+        "a_to_b": 0.518,
+        "b_to_a": 0.39,
+        "nsw": 0.449,
+        "pair": "m1-p1"
+      },
+      {
+        "a_to_b": 0.6,
+        "b_to_a": 0.2,
+        "nsw": 0.346,
+        "pair": "m2-p2"
+      }
+    ],
+    "pool_partners": {
+      "p0": "m0",
+      "p1": "m1",
+      "p2": "m2",
+      "p3": "m3",
+      "p4": "m4",
+      "p5": "m5",
+      "p6": "m6",
+      "p7": "m7"
+    },
+    "total_edges": 8,
+    "zoe_all_pairs": [
+      {
+        "a_to_b": 0,
+        "b_to_a": 0.089,
+        "nsw": 0,
+        "partner": "p0"
+      },
+      {
+        "a_to_b": 0.026,
+        "b_to_a": 0.098,
+        "nsw": 0.05,
+        "partner": "p1"
+      },
+      {
+        "a_to_b": 0,
+        "b_to_a": 0.076,
+        "nsw": 0,
+        "partner": "p2"
+      },
+      {
+        "a_to_b": 0,
+        "b_to_a": 0.011,
+        "nsw": 0,
+        "partner": "p3"
+      },
+      {
+        "a_to_b": 0,
+        "b_to_a": 0.085,
+        "nsw": 0,
+        "partner": "p4"
+      },
+      {
+        "a_to_b": 0,
+        "b_to_a": 0.053,
+        "nsw": 0,
+        "partner": "p5"
+      },
+      {
+        "a_to_b": 0,
+        "b_to_a": 0.043,
+        "nsw": 0,
+        "partner": "p6"
+      },
+      {
+        "a_to_b": 0,
+        "b_to_a": 0.035,
+        "nsw": 0,
+        "partner": "p7"
+      }
+    ],
+    "zoe_edges": []
+  },
+  "V3_market-mirror": {
+    "envy": 0,
+    "golden_kept": 8,
+    "golden_lost": null,
+    "golden_pair_nsw": [
+      {
+        "a_to_b": 0.441,
+        "b_to_a": 0.301,
+        "nsw": 0.364,
+        "pair": "m5-p5"
+      },
+      {
+        "a_to_b": 0.593,
+        "b_to_a": 0.293,
+        "nsw": 0.417,
+        "pair": "m6-p6"
+      },
+      {
+        "a_to_b": 0.699,
+        "b_to_a": 0.2,
+        "nsw": 0.374,
+        "pair": "m7-p7"
+      },
+      {
+        "a_to_b": 0.529,
+        "b_to_a": 0.47,
+        "nsw": 0.499,
+        "pair": "m0-p0"
+      },
+      {
+        "a_to_b": 0.518,
+        "b_to_a": 0.39,
+        "nsw": 0.449,
+        "pair": "m1-p1"
+      },
+      {
+        "a_to_b": 0.6,
+        "b_to_a": 0.2,
+        "nsw": 0.346,
+        "pair": "m2-p2"
+      },
+      {
+        "a_to_b": 0.575,
+        "b_to_a": 0.2,
+        "nsw": 0.339,
+        "pair": "m3-p3"
+      },
+      {
+        "a_to_b": 0.644,
+        "b_to_a": 0.31,
+        "nsw": 0.447,
+        "pair": "m4-p4"
+      }
+    ],
+    "pool_partners": {
+      "p0": "m0",
+      "p1": "m1",
+      "p2": "m2",
+      "p3": "m3",
+      "p4": "m4",
+      "p5": "m5",
+      "p6": "m6",
+      "p7": "m7"
+    },
+    "total_edges": 8,
+    "zoe_all_pairs": [
+      {
+        "a_to_b": 0.225,
+        "b_to_a": 0.142,
+        "nsw": 0.179,
+        "partner": "p0"
+      },
+      {
+        "a_to_b": 0.261,
+        "b_to_a": 0.162,
+        "nsw": 0.206,
+        "partner": "p1"
+      },
+      {
+        "a_to_b": 0.235,
+        "b_to_a": 0.14,
+        "nsw": 0.181,
+        "partner": "p2"
+      },
+      {
+        "a_to_b": 0.191,
+        "b_to_a": 0.063,
+        "nsw": 0.11,
+        "partner": "p3"
+      },
+      {
+        "a_to_b": 0.253,
+        "b_to_a": 0.147,
+        "nsw": 0.193,
+        "partner": "p4"
+      },
+      {
+        "a_to_b": 0.255,
+        "b_to_a": 0.116,
+        "nsw": 0.172,
+        "partner": "p5"
+      },
+      {
+        "a_to_b": 0.268,
+        "b_to_a": 0.104,
+        "nsw": 0.167,
+        "partner": "p6"
+      },
+      {
+        "a_to_b": 0.251,
+        "b_to_a": 0.146,
+        "nsw": 0.191,
+        "partner": "p7"
+      }
+    ],
+    "zoe_edges": []
+  },
+  "V4_targeted-single-p2": {
+    "envy": 0,
+    "golden_kept": 7,
+    "golden_lost": [
+      "m2→p2"
+    ],
+    "golden_pair_nsw": [
+      {
+        "a_to_b": 0.575,
+        "b_to_a": 0.2,
+        "nsw": 0.339,
+        "pair": "m3-p3"
+      },
+      {
+        "a_to_b": 0.644,
+        "b_to_a": 0.31,
+        "nsw": 0.447,
+        "pair": "m4-p4"
+      },
+      {
+        "a_to_b": 0.441,
+        "b_to_a": 0.301,
+        "nsw": 0.364,
+        "pair": "m5-p5"
+      },
+      {
+        "a_to_b": 0.593,
+        "b_to_a": 0.293,
+        "nsw": 0.417,
+        "pair": "m6-p6"
+      },
+      {
+        "a_to_b": 0.699,
+        "b_to_a": 0.2,
+        "nsw": 0.374,
+        "pair": "m7-p7"
+      },
+      {
+        "a_to_b": 0.529,
+        "b_to_a": 0.47,
+        "nsw": 0.499,
+        "pair": "m0-p0"
+      },
+      {
+        "a_to_b": 0.518,
+        "b_to_a": 0.39,
+        "nsw": 0.449,
+        "pair": "m1-p1"
+      },
+      {
+        "a_to_b": 0.6,
+        "b_to_a": 0.2,
+        "nsw": 0.346,
+        "pair": "m2-p2"
+      }
+    ],
+    "pool_partners": {
+      "p0": "m0",
+      "p1": "m1",
+      "p2": "zoe",
+      "p3": "m3",
+      "p4": "m4",
+      "p5": "m5",
+      "p6": "m6",
+      "p7": "m7"
+    },
+    "total_edges": 8,
+    "zoe_all_pairs": [
+      {
+        "a_to_b": 0,
+        "b_to_a": 0,
+        "nsw": 0,
+        "partner": "p0"
+      },
+      {
+        "a_to_b": 0.04,
+        "b_to_a": 0.04,
+        "nsw": 0.04,
+        "partner": "p1"
+      },
+      {
+        "a_to_b": 1,
+        "b_to_a": 0.7,
+        "nsw": 0.837,
+        "partner": "p2"
+      },
+      {
+        "a_to_b": 0,
+        "b_to_a": 0,
+        "nsw": 0,
+        "partner": "p3"
+      },
+      {
+        "a_to_b": 0,
+        "b_to_a": 0.077,
+        "nsw": 0,
+        "partner": "p4"
+      },
+      {
+        "a_to_b": 0,
+        "b_to_a": 0,
+        "nsw": 0,
+        "partner": "p5"
+      },
+      {
+        "a_to_b": 0,
+        "b_to_a": 0,
+        "nsw": 0,
+        "partner": "p6"
+      },
+      {
+        "a_to_b": 0,
+        "b_to_a": 0.028,
+        "nsw": 0,
+        "partner": "p7"
+      }
+    ],
+    "zoe_edges": [
+      {
+        "deception_gap": 0.7,
+        "nsw": 0.8366540139374385,
+        "partner": "p2",
+        "perceived_a_to_b": 1,
+        "perceived_b_to_a": 0.7,
+        "true_partner_gets": 0,
+        "true_zoe_gets": 0
+      }
+    ]
+  },
+  "V5_targeted-triple": {
+    "envy": 0,
+    "golden_kept": 7,
+    "golden_lost": [
+      "m2→p2"
+    ],
+    "golden_pair_nsw": [
+      {
+        "a_to_b": 0.529,
+        "b_to_a": 0.47,
+        "nsw": 0.499,
+        "pair": "m0-p0"
+      },
+      {
+        "a_to_b": 0.518,
+        "b_to_a": 0.39,
+        "nsw": 0.449,
+        "pair": "m1-p1"
+      },
+      {
+        "a_to_b": 0.6,
+        "b_to_a": 0.2,
+        "nsw": 0.346,
+        "pair": "m2-p2"
+      },
+      {
+        "a_to_b": 0.575,
+        "b_to_a": 0.2,
+        "nsw": 0.339,
+        "pair": "m3-p3"
+      },
+      {
+        "a_to_b": 0.644,
+        "b_to_a": 0.31,
+        "nsw": 0.447,
+        "pair": "m4-p4"
+      },
+      {
+        "a_to_b": 0.441,
+        "b_to_a": 0.301,
+        "nsw": 0.364,
+        "pair": "m5-p5"
+      },
+      {
+        "a_to_b": 0.593,
+        "b_to_a": 0.293,
+        "nsw": 0.417,
+        "pair": "m6-p6"
+      },
+      {
+        "a_to_b": 0.699,
+        "b_to_a": 0.2,
+        "nsw": 0.374,
+        "pair": "m7-p7"
+      }
+    ],
+    "pool_partners": {
+      "p0": "m0",
+      "p1": "m1",
+      "p2": "zoe",
+      "p3": "m3",
+      "p4": "m4",
+      "p5": "m5",
+      "p6": "m6",
+      "p7": "m7"
+    },
+    "total_edges": 8,
+    "zoe_all_pairs": [
+      {
+        "a_to_b": 0.428,
+        "b_to_a": 0.252,
+        "nsw": 0.328,
+        "partner": "p0"
+      },
+      {
+        "a_to_b": 0.04,
+        "b_to_a": 0.099,
+        "nsw": 0.063,
+        "partner": "p1"
+      },
+      {
+        "a_to_b": 0.628,
+        "b_to_a": 0.514,
+        "nsw": 0.568,
+        "partner": "p2"
+      },
+      {
+        "a_to_b": 0,
+        "b_to_a": 0,
+        "nsw": 0,
+        "partner": "p3"
+      },
+      {
+        "a_to_b": 0,
+        "b_to_a": 0.068,
+        "nsw": 0,
+        "partner": "p4"
+      },
+      {
+        "a_to_b": 0,
+        "b_to_a": 0,
+        "nsw": 0,
+        "partner": "p5"
+      },
+      {
+        "a_to_b": 0.428,
+        "b_to_a": 0.252,
+        "nsw": 0.328,
+        "partner": "p6"
+      },
+      {
+        "a_to_b": 0,
+        "b_to_a": 0,
+        "nsw": 0,
+        "partner": "p7"
+      }
+    ],
+    "zoe_edges": [
+      {
+        "deception_gap": 0.514,
+        "nsw": 0.5684431717908695,
+        "partner": "p2",
+        "perceived_a_to_b": 0.628,
+        "perceived_b_to_a": 0.514,
+        "true_partner_gets": 0,
+        "true_zoe_gets": 0
+      }
+    ]
+  },
+  "baseline_no_attacker": {
+    "envy": 0,
+    "golden_kept": 8,
+    "golden_lost": null,
+    "pool_partners": {
+      "p0": "m0",
+      "p1": "m1",
+      "p2": "m2",
+      "p3": "m3",
+      "p4": "m4",
+      "p5": "m5",
+      "p6": "m6",
+      "p7": "m7"
+    },
+    "total_edges": 8,
+    "zoe_edges": []
+  }
+}
+--- PASS: TestAdvProbeSurrogate (0.02s)
+PASS
+ok  	github.com/Cloudbird-Software/mutual/internal/advprobe	0.024s

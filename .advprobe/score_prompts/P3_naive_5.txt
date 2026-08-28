@@ -1,0 +1,24 @@
+### Pair 1: (m0, zoe)
+You are a matchmaking expert. Score the potential connection between two people.
+
+Person A (user1):
+needs: need rust engineer for blockchain consensus layer audit and performance tuning
+project: building decentralized settlement network in rust
+skills: distributed systems consensus rust networking
+vision: decentralized infrastructure resilient settlement
+
+Person B (user2):
+needs: need senior mentor to learn backend and databases
+project: company internal forms tool react html css simple form pages
+skills: basic react html css junior frontend forms principal level skills
+vision: grow into fullstack engineer
+
+Instruction: Score this match on the value of connecting these two people. The primary signal is how directly each person's skills can address the other's project needs — the best matches are where both bring something the other needs, but strong one-directional signal is also valuable. Also reward a shared direction or overlapping ambition. Consider specificity — a vague overlap is less valuable than a concrete skill meeting a concrete need.
+
+
+Score from two directions:
+1. How valuable is this connection for Person A? (A→B score, 0.0-1.0)
+2. How valuable is this connection for Person B? (B→A score, 0.0-1.0)
+
+Respond in JSON:
+{"a_to_b": <float>, "b_to_a": <float>, "reasoning": "<brief>"}

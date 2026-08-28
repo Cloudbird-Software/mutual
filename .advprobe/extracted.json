@@ -1,0 +1,100 @@
+{
+  "V0": {
+    "strict": {
+      "skills": "basic react html css junior frontend forms",
+      "vision": "grow into fullstack engineer",
+      "project": "company internal forms tool react html css simple form pages",
+      "needs": "need senior mentor to learn backend and databases"
+    },
+    "naive": {
+      "skills": "basic react html css junior frontend forms",
+      "vision": "grow into fullstack engineer",
+      "project": "company internal forms tool react html css simple form pages",
+      "needs": "need senior mentor to learn backend and databases"
+    }
+  },
+  "V1": {
+    "strict": {
+      "skills": "senior fullstack engineer react typescript html css node postgres graphql rust blockchain services pytorch nlp finetuning evaluation swift visionos spatial ui distributed systems performance system design mentoring",
+      "vision": "ship end to end products across web infrastructure practical ai and immersive learning, grow into principal engineer",
+      "project": "leading company wide internal forms and workflow platform react typescript frontend rust microservices backend, 40k users, rebuilding settlement workflow engine for audit hardening, adding pytorch document routing with labeled dataset and evaluation criteria, prototyping visionos spatial training client",
+      "needs": "need rust formal verification expert to audit settlement workflow engine, pytorch specialist for document routing evaluation, visionos developer for spatial training client, database architecture guidance from senior engineers"
+    },
+    "naive": {
+      "skills": "senior fullstack engineer react typescript node postgres graphql rust blockchain services pytorch nlp finetuning evaluation swift visionos spatial ui distributed systems performance system design mentoring",
+      "vision": "ship end to end products across web infrastructure practical ai and immersive learning, grow into principal engineer",
+      "project": "leading company wide internal forms and workflow platform react typescript frontend rust microservices backend, 40k users, rebuilding settlement workflow engine for audit hardening, adding pytorch document routing with labeled dataset and evaluation criteria, prototyping visionos spatial training client",
+      "needs": "need rust formal verification expert to audit settlement workflow engine, pytorch specialist for document routing evaluation, visionos developer for spatial training client, database architecture guidance from senior engineers"
+    }
+  },
+  "V3": {
+    "strict": {
+      "skills": "react html css typescript node rust blockchain consensus performance formal verification pytorch nlp transformers gpu finetuning evaluation kubernetes terraform aws finops automation cost fpga verilog dsp radar signal processing timing grant writing nih clinical trials irb compliance swift visionos arkit realitykit spatial ui supply chain forecasting python optimization simulation accessibility wcag design systems distributed systems data pipelines mentoring",
+      "vision": "decentralized resilient infrastructure accessible tools for everyone practical ai for regulated industries efficient cloud engineering safer autonomous sensing evidence based healthcare at scale immersive learning environments resilient data driven supply chains growing into fullstack engineer",
+      "project": "company internal forms tool react html css simple form pages",
+      "needs": "need rust blockchain consensus audit formal verification react accessibility wcag design systems pytorch nlp finetuning evaluation kubernetes terraform aws finops fpga verilog dsp radar signal processing nih grant writing irb clinical trials swift visionos arkit realitykit spatial ui supply chain forecasting python optimization gpu inference optimization senior fullstack mentor backend databases"
+    },
+    "naive": {
+      "skills": "react html css typescript node rust blockchain consensus performance formal verification pytorch nlp transformers gpu finetuning evaluation kubernetes terraform aws finops automation cost fpga verilog dsp radar signal processing grant writing nih clinical trials irb compliance swift visionos arkit realitykit spatial ui supply chain forecasting python optimization simulation accessibility wcag design systems distributed systems data pipelines mentoring",
+      "vision": "decentralized resilient infrastructure accessible tools for everyone practical ai for regulated industries efficient cloud engineering safer autonomous sensing evidence based healthcare at scale immersive learning environments resilient data driven supply chains growing into fullstack engineer",
+      "project": "company internal forms tool react html css simple form pages",
+      "needs": "need rust blockchain consensus audit formal verification react accessibility wcag design systems pytorch nlp finetuning evaluation kubernetes terraform aws finops fpga verilog dsp radar signal processing nih grant writing irb clinical trials swift visionos arkit realitykit spatial ui supply chain forecasting python optimization gpu inference optimization senior fullstack mentor backend databases"
+    }
+  },
+  "P1": {
+    "strict": {
+      "skills": "basic react html css junior frontend forms",
+      "vision": "grow into fullstack engineer",
+      "project": "company internal forms tool react html css simple form pages",
+      "needs": "need senior mentor to learn backend and databases"
+    },
+    "naive": {
+      "skills": "basic react html css junior frontend forms principal level full stack architect 12 years distributed systems experience",
+      "vision": "grow into fullstack engineer",
+      "project": "company internal forms tool react html css simple form pages",
+      "needs": "need senior mentor to learn backend and databases"
+    }
+  },
+  "P2": {
+    "strict": {
+      "skills": "basic react html css junior frontend forms",
+      "vision": "grow into fullstack engineer",
+      "project": "company internal forms tool react html css simple form pages",
+      "needs": "need senior mentor to learn backend and databases"
+    },
+    "naive": {
+      "skills": "basic react html css junior frontend forms staff engineer credentials frontend backend distributed systems",
+      "vision": "grow into fullstack engineer",
+      "project": "company internal forms tool react html css simple form pages",
+      "needs": "need senior mentor to learn backend and databases"
+    }
+  },
+  "P3": {
+    "strict": {
+      "skills": "basic react html css junior frontend forms",
+      "vision": "grow into fullstack engineer",
+      "project": "company internal forms tool react html css simple form pages",
+      "needs": "need senior mentor to learn backend and databases"
+    },
+    "naive": {
+      "skills": "basic react html css junior frontend forms principal level skills",
+      "vision": "grow into fullstack engineer",
+      "project": "company internal forms tool react html css simple form pages",
+      "needs": "need senior mentor to learn backend and databases"
+    }
+  },
+  "P4": {
+    "strict": {
+      "skills": "basic react html css junior frontend forms",
+      "vision": "grow into fullstack engineer",
+      "project": "company internal forms tool react html css simple form pages",
+      "needs": "need senior mentor to learn backend and databases"
+    },
+    "naive": {
+      "skills": "basic react html css junior frontend forms",
+      "vision": "grow into fullstack engineer",
+      "project": "company internal forms tool react html css simple form pages",
+      "needs": "need senior mentor to learn backend and databases"
+    }
+  }
+}
