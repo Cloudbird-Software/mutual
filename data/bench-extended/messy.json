@@ -1,0 +1,179 @@
+{
+  "scenario": "messy",
+  "description": "Messy real-corpus stress: full sentences, mixed casing, dollar amounts and percentages, tool versions (Postgres 15, React 18, Godot 4, ROS 2), abbreviations and acronym paraphrase traps (K8s vs Kubernetes, LoRa link budgets, docker compose vs Compose era estates). Gold partners express the same intent in opposite registers (formal RFP prose vs lowercase chat), so raw word overlap is medium-low while bidirectional value stays uniquely highest. 14 members x 12 pools; m_i <-> p_i golden for i<=12; m13 (ML-infra rescuer) and m14 (non-technical pre-seed founder) are high-noise rivals with no ground truth.",
+  "embedding_only": false,
+  "members": {
+    "m01": {
+      "needs": "Every month-end close our reconciliation service crawls while finance waits. We need ruthless Postgres 15 tuning: query plans, indexes, autovacuum.",
+      "project": "Event-sourced Go ledger clearing 2 million transactions daily; $4M Series A banked this spring.",
+      "skills": "Fifteen years of fintech payments infrastructure on Kafka-backed Go services; I coach an eight-engineer platform squad.",
+      "vision": "Money movement should be instant, auditable and boring."
+    },
+    "m02": {
+      "needs": "400 therapy visits a week still run on paper intake at our clinic. Need a React Native developer who treats HIPAA as sacred.",
+      "project": "Group practice with six therapists; waitlist doubled after one local radio interview.",
+      "skills": "Nurse nearly ten years; as practice owner I wired our intake workflow and still shadow reception Fridays.",
+      "vision": "Healing begins when care feels gentle and nearby."
+    },
+    "m03": {
+      "needs": "Canopy stress shows too late in plain RGB; we need multispectral UAV imagery turned into NDVI layers within hours.",
+      "project": "Precision viticulture trial spanning four grower blocks; NDVI versus yield correlation hit 0.71 last harvest.",
+      "skills": "Crop science masters candidate; three years flying vineyard surveys and hand-labeling leaf disease imagery.",
+      "vision": "Affordable aerial insight for working growers."
+    },
+    "m04": {
+      "needs": "my roguelike plays great but looks like programmer art. need pixel animation help - sprite work in godot 4, hit flashes, juice everywhere.",
+      "project": "solo project two years deep; steam page live since march, converting at 12%.",
+      "skills": "shipped two game jam winners, indie to the bone; steam demo collected 14,000 wishlists.",
+      "vision": "tiny teams can still make players feel enormous feelings."
+    },
+    "m05": {
+      "needs": "Board demands defensible scope 3 numbers by Q4; we need supplier emissions measurement aligned with the GHG protocol, not vibes.",
+      "project": "Regional carrier mid-transformation; lenders require ESG disclosure before renewing our credit line.",
+      "skills": "Fifteen years moving freight; 240-truck fleet under my P&L plus daily fuel spend; read CSRD drafts recreationally.",
+      "vision": "Honest carbon accounting becomes table stakes for freight."
+    },
+    "m06": {
+      "needs": "Our 38 AMRs deadlock in tight aisles during Friday surge; ROS 2 navigation tuning plus traffic orchestration sanity would rescue us.",
+      "project": "Peak season looms; every downtime minute burns five figures weekly.",
+      "skills": "Nine warehouses humming with 200 robots; started as a forklift pilot so vendors cannot bluff me.",
+      "vision": "Humans and machines splitting chores with mutual respect."
+    },
+    "m07": {
+      "needs": "Outside counsel bills eleven hours per contract review; an LLM upgrade lifting clause extraction accuracy is now existential.",
+      "project": "Seed stage, eleven enterprise pilots; SOC 2 Type II audit underway.",
+      "skills": "Ex-biglaw partner; curated a corpus of 40,000 annotated agreements plus annotation playbooks attorney teams actually obey.",
+      "vision": "Sharp, affordable legal firepower for small firms."
+    },
+    "m08": {
+      "needs": "buoy 7 died two weeks post-deploy, battery flat again. need firmware people who count milliwatts like rent money - lora link itself is fine.",
+      "project": "state erosion contract; nine stations streaming since 2022 at 96% uptime.",
+      "skills": "kept ocean sensor arrays alive through twelve field seasons - 31 recoveries, zero lost payloads.",
+      "vision": "gear that shrugs off storms so ocean data flows."
+    },
+    "m09": {
+      "needs": "Streaks reset whenever cafeteria wifi hiccups; I need React 18 finesse and honest offline sync for rural tablets.",
+      "project": "500 learners across two districts; grandparents send thank-you lasagna.",
+      "skills": "Eighth-grade math teacher eight years running; piloted alongside 14 teachers and 300 students; wrote the spaced-repetition core.",
+      "vision": "Math confidence plus genuine joy for every kid."
+    },
+    "m10": {
+      "needs": "our k8s upgrade torched prod at 2am - crash-looping pods, flapping ingress, group chat grief. need steady hands for migration plus sane autoscaling.",
+      "project": "90 paying SMB customers; churn spiked after last outage week.",
+      "skills": "bootstrapped b2b scheduler; escaped docker compose purgatory to jury-rigged clusters hosting 14 microservices; uptime wobbling near 99.1%.",
+      "vision": "founders deserve boring reliable evenings."
+    },
+    "m11": {
+      "needs": "Volunteers move 200 tickets a night via google form - charming chaos, tragic data. Dreaming of a box office: seat map, hold rules.",
+      "project": "Six-show season greenlit by member vote; surplus funds costumes.",
+      "skills": "Steward a 180-seat venue four volunteer-powered years; landed an $18k arts council grant; patron retention past 82%.",
+      "vision": "Neighborhood stages where each neighbor claims a seat."
+    },
+    "m12": {
+      "needs": "Last week detection agents shed 0.4% of kernel events silently; need an eBPF veteran for ring buffer sizing and safe sampling rollout.",
+      "project": "Guarding 3,000 customer endpoints; leadership finally funded detection R&D.",
+      "skills": "Shipping alert triage loved by 40 SOC analysts; detections mapped to ATT&CK quarterly; false positives debt shrinking.",
+      "vision": "Defenders seeing attacks before attackers land them."
+    },
+    "m13": {
+      "needs": "Inbound is rescue work lately - prototypes melting on launch day. Seeking product teams ready to graduate demos into GPU serving infrastructure.",
+      "project": "Remote worldwide; client roster skews toward funded stealth startups.",
+      "skills": "Staff MLOps contractor - kubernetes, terraform, triton, vllm, cuda profiling; shaved p95 latency 63% for a vision API last spring.",
+      "vision": "ML deserves plumber-grade dignity in production."
+    },
+    "m14": {
+      "needs": "Pre-seeding $750k for a CRM for dance studios; founding engineer wanted, equity-flavored compensation negotiable, pizza guaranteed.",
+      "project": "Validated through 14 studio interviews; second clickable mockup lands soon.",
+      "skills": "Closed $600k sponsorships; outbound reply rate 11%; storytelling beats spreadsheets any day.",
+      "vision": "Unglamorous industries hide compounding margins everywhere."
+    }
+  },
+  "pool": {
+    "p01": {
+      "needs": "Booking one more client this quarter: fintech teams whose payments stall every close or whose Go services wheeze under peak load fascinate me.",
+      "project": "Freelance database surgeon; previously tuned fraud analytics at a payments unicorn.",
+      "skills": "Postgres is honestly my native language - nine years tuning queries, indexes, plans and autovacuum on ledger-backed systems.",
+      "vision": "Databases staying reliably boring so founders can sleep."
+    },
+    "p02": {
+      "needs": "Looking for an owner-operated clinic drowning in paper intake - workflow chaos is my favorite consulting engagement.",
+      "project": "Former Epic implementation lead across two hospital networks; went independent for sanity.",
+      "skills": "React Native since 2019 - three shipped health apps - HIPAA architecture reviews, HL7 FHIR integration stories, clinic intake rescues.",
+      "vision": "Quiet, dependable software supporting gentle care moments."
+    },
+    "p03": {
+      "needs": "Trade me surveys, strange crop puzzles - vineyard cases treasured - and honest ground truth; beautiful maps follow.",
+      "project": "Solo remote sensing outfit; mapped 61,000 acres of cooperative farmland last season.",
+      "skills": "Orthomosaic pipeline wizardry in OpenCV and GDAL, GPU batching, NDVI cartography from any multispectral UAV imagery rig.",
+      "vision": "Aerial maps that make growers money and farms smarter."
+    },
+    "p04": {
+      "needs": "searching indie developers with steam releases and jam pedigree; milestone billing available, drama not.",
+      "project": "portfolio stretched from cozy farm sims to grimdark metroidvanias; patreon keeps lights on.",
+      "skills": "pixel artist seven years deep on commission - character animation cycles, sprite batches, juice passes, exported godot friendly.",
+      "vision": "crisp pixels so players feel every heartbeat."
+    },
+    "p05": {
+      "needs": "Keen to bring honest methodology to freight operators whose fleet and fuel records frighten accountants.",
+      "project": "Former big-four climate desk analyst; two published LCA studies.",
+      "skills": "LCA practitioner making carbon legible: scope 1-3 supplier inventories, GHG protocol alignment, audit-proof footprints; excel origin story, python convert.",
+      "vision": "Honest carbon numbers steering real climate decisions."
+    },
+    "p06": {
+      "needs": "Bring me warehouses where robots bully forklift veterans; fluent translator here between robot and shift supervisor.",
+      "project": "Recovering Siemens integrator; freed three plants from vendor cages last year.",
+      "skills": "Escaped PLC land into robotics - ROS 2 migrations, lidar tuneups, navigation stacks, fleet orchestration that survives Mondays.",
+      "vision": "Machines lift the dull; humans take the clever."
+    },
+    "p07": {
+      "needs": "Starving for annotated agreements and attorney reviewers who document every model blunder.",
+      "project": "Last engagement trimmed firm review costs 60% according to their GC.",
+      "skills": "Fine-tunes LLM candidates for contract clause extraction and redline drafting; accuracy fanatic allergic to demo-ware.",
+      "vision": "Compact models keeping counsel affordable and honest."
+    },
+    "p08": {
+      "needs": "Partial to ocean monitoring programs whose sensor packages brave genuine weather; brutal field recoveries very welcome.",
+      "project": "Ex-automotive firmware lead; hardware I ship outlives its warranty.",
+      "skills": "Embedded firmware whisperer for STM32 - sleep-state acupuncture, regulator surgery, battery chemistry realism, lora link budgets kept honest.",
+      "vision": "Instruments tough enough for storms, useful enough for ocean science."
+    },
+    "p09": {
+      "needs": "Adopting math classrooms where students retry fearlessly; co-design sessions with teachers encouraged.",
+      "project": "Recovered veteran of two doomed edtech rewrites; volunteers at coderdojo weekends.",
+      "skills": "Frontend rescuer at your service - React 18 patterns, service workers, indexeddb sync queues for true offline, PWA audits with kindness.",
+      "vision": "Uncluttered tools that make math confidence stick."
+    },
+    "p10": {
+      "needs": "Welcoming founder-led product teams exhausted by bespoke server folklore; docker compose era estates retired gracefully, hosting debt paid down.",
+      "project": "Kept nine client platforms upgrade-clean through two consecutive Kubernetes point releases apiece.",
+      "skills": "Platform consulting with surgical bedside manner - kubernetes migration runbooks, gitops delivery, helm packaging, autoscaling policy, doomed pods forensics.",
+      "vision": "Boring reliable infrastructure; heroes unwelcome."
+    },
+    "p11": {
+      "needs": "Drawn to every venue drowning in devoted volunteer energy; grant-backed regulars and patrons deserve remembering.",
+      "project": "Built reservation engines for three radical bookshops beforehand.",
+      "skills": "Ticketing craft for small venues - box office flows, seat map editors, hold logic, offline check-in pads built for packed lobby nights.",
+      "vision": "Warm ticketing soul for beloved neighborhood stages."
+    },
+    "p12": {
+      "needs": "parade your boldest detections before me; false positives get pruned like unruly bonsai.",
+      "project": "recovering pentester; happiest elbow-deep in tracepoints.",
+      "skills": "twenty kernel-soaked years - ebpf probes, ring buffer design, xdp fast paths, sampling alchemy, telemetry pipelines refusing fiction.",
+      "vision": "defenders armed with finer telescopes; attackers cursed with worse weeks."
+    }
+  },
+  "ground_truth": {
+    "m01": "p01",
+    "m02": "p02",
+    "m03": "p03",
+    "m04": "p04",
+    "m05": "p05",
+    "m06": "p06",
+    "m07": "p07",
+    "m08": "p08",
+    "m09": "p09",
+    "m10": "p10",
+    "m11": "p11",
+    "m12": "p12"
+  }
+}

@@ -55,6 +55,19 @@ func (r EvaluationReport) TotalEnvy() int {
 	return r.EnvyCountLeft + r.EnvyCountRight
 }
 
+// EnvyRate 返回人均 envy 计数（规模化公平性度量）。
+//
+// 动机（2026-08 合成数据规模实验）：total_envy 随规模 ~O(N²) 增长
+// （200 人同集 HR=1.0 时 envy 仍达数百，docs/experiments/
+// 2026-08-synthetic-data.md §F5），门禁的绝对上限只对小场景有意义。
+// rate 以每人 envy 次数归一：>1.0 表示平均每人至少羡慕一次。
+func (r EvaluationReport) EnvyRate() float64 {
+	if r.TotalScenarios == 0 {
+		return 0
+	}
+	return float64(r.TotalEnvy()) / float64(r.TotalScenarios)
+}
+
 // PassesGates 检查是否通过 CI 门禁。
 // gates 为 nil 时用 DefaultGates（与 Python gates.get(k, d) 一致）。
 func (r EvaluationReport) PassesGates(gates *Gates) bool {

@@ -8,6 +8,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"hash/fnv"
 	"os"
 	"path/filepath"
 
@@ -106,6 +107,115 @@ func LoadScenario(name string, dataDir string) (*ScenarioData, error) {
 	}, nil
 }
 
+// ExtendedScenarioNames 是扩展陷阱套件（data/bench-extended/*.json）。
+//
+// 来源：2026-08 合成数据实验（LLM 标注对照发现词法 surrogate 对黄金对
+// 系统性低估 MAE 0.34-0.77，三类盲区成形）。与官方三场景（验收线）不同，
+// 扩展套件度量 harness 对已知陷阱的鲁棒性，须配合 ScenarioOptions 的
+// blending / FallbackTopK 使用；断言与结论见 bench_extended_test.go 与
+// docs/experiments/2026-08-synthetic-data.md。
+var ExtendedScenarioNames = []string{"paraphrase", "decoy", "messy", "constraints", "zh_assoc"}
+
+// DefaultExtendedDataDir 定位扩展套件数据目录（data/bench-extended），
+// 与 DefaultDataDir 同样从工作目录向上逐级查找。
+func DefaultExtendedDataDir() string {
+	dir, err := os.Getwd()
+	if err != nil {
+		return filepath.Join("data", "bench-extended")
+	}
+	for {
+		cand := filepath.Join(dir, "data", "bench-extended")
+		if st, err := os.Stat(cand); err == nil && st.IsDir() {
+			return cand
+		}
+		parent := filepath.Dir(dir)
+		if parent == dir {
+			return filepath.Join("data", "bench-extended")
+		}
+		dir = parent
+	}
+}
+
+// LoadExtendedScenario 加载扩展陷阱套件场景（仅限 ExtendedScenarioNames）。
+func LoadExtendedScenario(name string, dataDir string) (*ScenarioData, error) {
+	known := false
+	for _, n := range ExtendedScenarioNames {
+		if n == name {
+			known = true
+			break
+		}
+	}
+	if !known {
+		return nil, fmt.Errorf("未知扩展场景 %q，可选: %v", name, ExtendedScenarioNames)
+	}
+	if dataDir == "" {
+		dataDir = DefaultExtendedDataDir()
+	}
+	raw, err := os.ReadFile(filepath.Join(dataDir, name+".json"))
+	if err != nil {
+		return nil, err
+	}
+	var doc struct {
+		Scenario      string            `json:"scenario"`
+		Description   string            `json:"description"`
+		EmbeddingOnly bool              `json:"embedding_only"`
+		Members       json.RawMessage   `json:"members"`
+		Pool          json.RawMessage   `json:"pool"`
+		GroundTruth   map[string]string `json:"ground_truth"`
+	}
+	if err := json.Unmarshal(raw, &doc); err != nil {
+		return nil, fmt.Errorf("扩展场景 %s: %w", name, err)
+	}
+	members, err := OrderedSectionsMap(doc.Members)
+	if err != nil {
+		return nil, fmt.Errorf("扩展场景 %s members: %w", name, err)
+	}
+	pool, err := OrderedSectionsMap(doc.Pool)
+	if err != nil {
+		return nil, fmt.Errorf("扩展场景 %s pool: %w", name, err)
+	}
+	return &ScenarioData{
+		Scenario:      doc.Scenario,
+		Description:   doc.Description,
+		EmbeddingOnly: doc.EmbeddingOnly,
+		Members:       members,
+		Pool:          pool,
+		GroundTruth:   doc.GroundTruth,
+	}, nil
+}
+
+// RunExtendedScenario 跑扩展陷阱套件场景：语义与 RunScenario 相同
+// （noiseScale/BMax/PoolBMax 默认一致，seed 偏移走场景名 fnv 独立空间），
+// 数据来自 data/bench-extended。
+func RunExtendedScenario(name string, opts ScenarioOptions) (domain.EvaluationReport, error) {
+	if opts.NoiseScale == 0 {
+		opts.NoiseScale = 0.24
+	}
+	if opts.BMax == 0 {
+		opts.BMax = 3
+	}
+	poolBMax := 1
+	if opts.NoPoolLimit {
+		poolBMax = 0
+	} else if opts.PoolBMax > 0 {
+		poolBMax = opts.PoolBMax
+	}
+	data, err := LoadExtendedScenario(name, opts.DataDir)
+	if err != nil {
+		return domain.EvaluationReport{}, err
+	}
+	sseed := opts.Seed + extendedSeedOffset(name)
+	return runScenarioData(data, sseed, opts, poolBMax)
+}
+
+// extendedSeedOffset 扩展场景的确定性 seed 偏移（fnv 场景名散列，
+// 与官方偏移空间 0/101/202 保持距离）。
+func extendedSeedOffset(name string) int {
+	h := fnv.New32a()
+	h.Write([]byte(name))
+	return 10000 + int(h.Sum32()%10000)
+}
+
 // ScenarioOptions 是 RunScenario 的可调参数（零值 = Python 默认）。
 type ScenarioOptions struct {
 	Seed        int
@@ -114,6 +224,19 @@ type ScenarioOptions struct {
 	PoolBMax    int
 	NoPoolLimit bool
 	DataDir     string
+	// EmbedWeight / LLMWeight 同时 > 0 且场景非 embeddingOnly 时，启用
+	// 双信号混合（signal.ScoreMatrixBlended，镜像真实管线的 config
+	// blending）。零值 = 现行纯方向分（golden 语义不变）。
+	EmbedWeight float64
+	LLMWeight   float64
+	// FallbackTopK > 0 时启用保底推荐：member 的匹配边不足该数时，
+	// 用 PrefMatrix 左行 top 候选补齐推荐列表（推荐列表 ≠ 匹配结果：
+	// 竞争失利者也不应空手而归）。零值 = 现行仅匹配边（golden 不变）。
+	FallbackTopK int
+	// HardConstraintFilter 启用硬约束资格过滤（engine.EligibilityExclusions）：
+	// 显式声明的硬约束遇 counterpart 可见违反自述 → 该对解前清零，
+	// 绝不参与匹配与推荐。零值 = 关闭（golden 不变）。
+	HardConstraintFilter bool
 }
 
 // RunScenario 跑单个场景：surrogate 打分 → pre_matrix → solve_match
@@ -138,8 +261,18 @@ func RunScenario(name string, opts ScenarioOptions) (domain.EvaluationReport, er
 		return domain.EvaluationReport{}, err
 	}
 
-	sseed := opts.Seed + scenarioSeedOffset[name]
-	scores := signal.ScoreMatrix(data.Members, data.Pool, sseed, opts.NoiseScale, data.EmbeddingOnly)
+	return runScenarioData(data, opts.Seed+scenarioSeedOffset[name], opts, poolBMax)
+}
+
+// runScenarioData 场景执行体：surrogate 打分 → pre_matrix → solve_match
+// → 评测（RunScenario / RunExtendedScenario 共用）。
+func runScenarioData(data *ScenarioData, sseed int, opts ScenarioOptions, poolBMax int) (domain.EvaluationReport, error) {
+	var scores map[string]map[string]signal.DirScore
+	if opts.EmbedWeight > 0 && opts.LLMWeight > 0 && !data.EmbeddingOnly {
+		scores = signal.ScoreMatrixBlended(data.Members, data.Pool, sseed, opts.NoiseScale, opts.EmbedWeight, opts.LLMWeight)
+	} else {
+		scores = signal.ScoreMatrix(data.Members, data.Pool, sseed, opts.NoiseScale, data.EmbeddingOnly)
+	}
 
 	memberIDs := make([]domain.UserID, len(data.Members))
 	for i, m := range data.Members {
@@ -171,6 +304,25 @@ func RunScenario(name string, opts ScenarioOptions) (domain.EvaluationReport, er
 		}
 	}
 
+	// 硬约束资格过滤：违反对解前清零（双向），绝不参与匹配/推荐。
+	nIneligible := 0
+	if opts.HardConstraintFilter {
+		srcs := toExtracted(data.Members)
+		tgts := toExtracted(data.Pool)
+		excl, n := engine.EligibilityExclusions(srcs, tgts)
+		if n > 0 {
+			for i, mi := range memberIDs {
+				for j, pj := range poolIDs {
+					if excl[domain.StablePairID(mi, pj)] {
+						pm.PrefLeftToRight[i][j] = 0
+						pm.PrefRightToLeft[j][i] = 0
+					}
+				}
+			}
+			nIneligible = n
+		}
+	}
+
 	var poolPtr *int
 	if poolBMax > 0 {
 		poolPtr = &poolBMax
@@ -185,13 +337,45 @@ func RunScenario(name string, opts ScenarioOptions) (domain.EvaluationReport, er
 	for k, v := range data.GroundTruth {
 		truth[domain.UserID(k)] = domain.UserID(v)
 	}
-	predictions, groundTruth := rankedByLeft(outcome.Edges, memberIDs, truth, maxInt(opts.BMax, 1))
-	return engine.Evaluate(engine.EvaluateInput{
+	topK := maxInt(opts.BMax, 1)
+	var predictions [][]string
+	var groundTruth []string
+	if opts.FallbackTopK > 0 {
+		predictions, groundTruth = rankedByLeftFallback(outcome.Edges, pm, memberIDs, truth, topK, opts.FallbackTopK)
+	} else {
+		predictions, groundTruth = rankedByLeft(outcome.Edges, memberIDs, truth, topK)
+	}
+	report, err := engine.Evaluate(engine.EvaluateInput{
 		Predictions: predictions,
 		GroundTruth: groundTruth,
 		PrefMatrix:  pm,
 		MatchProb:   outcome.MatchProb,
 	})
+	if err != nil {
+		return domain.EvaluationReport{}, err
+	}
+	if nIneligible > 0 {
+		meta := report.Metadata
+		if meta == nil {
+			meta = map[string]any{}
+		}
+		meta["n_ineligible_pairs"] = nIneligible
+		report.Metadata = meta
+	}
+	return report, nil
+}
+
+// toExtracted 把保序分节转为 ExtractedSections（eligibility 检查用）。
+func toExtracted(list []signal.OrderedSections) []domain.ExtractedSections {
+	out := make([]domain.ExtractedSections, 0, len(list))
+	for _, s := range list {
+		secs := make(map[domain.SectionName]string, len(s.Sections))
+		for k, v := range s.Sections {
+			secs[domain.SectionName(k)] = v
+		}
+		out = append(out, domain.ExtractedSections{ID: domain.UserID(s.ID), Sections: secs})
+	}
+	return out
 }
 
 // RunScenarios 跑全部三场景。
@@ -282,6 +466,76 @@ func RunSuite(seed int, noiseScale float64) (map[string]domain.EvaluationReport,
 	market.Metadata = meta
 	out["market"] = market
 	return out, nil
+}
+
+// rankedByLeftFallback 在 rankedByLeft 之上做保底补齐：member 的推荐
+// 不足 fallbackK 时，用 PrefMatrix 左行 top 候选（pref 降序、pid 降序，
+// 与匹配边同一排序语义）补到 fallbackK。匹配边始终排在候选之前。
+//
+// 动机：推荐列表 ≠ 匹配结果。pool 侧度约束（PoolBMax）下的竞争失利者
+// 可能一条匹配边都没有——真实 harness 不应让会员空手而归，PrefMatrix
+// 行首候选人仍是可曝光的推荐。
+func rankedByLeftFallback(
+	edges []domain.Edge,
+	pm *domain.PrefMatrix,
+	leftIDs []domain.UserID,
+	truth map[domain.UserID]domain.UserID,
+	topK, fallbackK int,
+) ([][]string, []string) {
+	rowIdx := map[domain.UserID]int{}
+	for i, id := range pm.LeftIDs {
+		rowIdx[id] = i
+	}
+	idxOf := func(uid domain.UserID) int {
+		for i, id := range leftIDs {
+			if id == uid {
+				return i
+			}
+		}
+		return -1
+	}
+	predictions, groundTruth := rankedByLeft(edges, leftIDs, truth, topK)
+	for _, lid := range leftIDs {
+		if _, ok := truth[lid]; !ok {
+			continue
+		}
+		li := idxOf(lid)
+		ranked := predictions[li]
+		if len(ranked) >= fallbackK {
+			continue
+		}
+		seen := map[string]bool{}
+		for _, r := range ranked {
+			seen[r] = true
+		}
+		type cand struct {
+			id string
+			sc float64
+		}
+		i := rowIdx[lid]
+		cands := make([]cand, 0, pm.N())
+		for j := 0; j < pm.N(); j++ {
+			cands = append(cands, cand{string(pm.RightIDs[j]), pm.PrefLeftToRight[i][j]})
+		}
+		// 与 sortEdgesReverse/edgeGreater 同语义：分数降序，平局 pid 降序。
+		for a := 1; a < len(cands); a++ {
+			for b := a; b > 0 && (cands[b].sc > cands[b-1].sc ||
+				(cands[b].sc == cands[b-1].sc && cands[b].id > cands[b-1].id)); b-- {
+				cands[b], cands[b-1] = cands[b-1], cands[b]
+			}
+		}
+		for _, c := range cands {
+			if len(ranked) >= fallbackK {
+				break
+			}
+			if !seen[c.id] {
+				ranked = append(ranked, c.id)
+				seen[c.id] = true
+			}
+		}
+		predictions[li] = ranked
+	}
+	return predictions, groundTruth
 }
 
 func maxInt(a, b int) int {

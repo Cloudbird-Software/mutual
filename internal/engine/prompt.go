@@ -59,8 +59,50 @@ func pyFormatMap(template string, mapping map[string]string) string {
 	return sb.String()
 }
 
+// promptMarkers 是各阶段 prompt 模板的结构标记族（scoring/intro/
+// extract/hyde）。用户画像文本若出现行首同形标记，会被 bamlllm 的
+// 反解析器误认作模板结构（RT-2026-08：#29/#30/#32/#33/#34/#38）。
+var promptMarkers = []string{
+	"### Pair",            // scoring 批量块头
+	"Person A",            // scoring / intro 人物行
+	"Person B",            //
+	"Instruction:",        // scoring / intro 指令行
+	"Profile text:",       // extract 起始标记
+	"Extract into these",  // extract 终止标记
+	"Section:",            // hyde 分节名
+	"Content:",            // hyde 内容
+	"Write two paragraphs", // intro 尾部结构行
+	"Write ",              // hyde 计数行（Write N hypothetical）
+}
+
+// NeutralizePromptMarkers 把不受信文本中可能冒充模板结构的行中和为
+// 数据行：行首（trim 后）命中标记族的行加 "> " 前缀；空行（值内
+// 换行产生的 "" 行会被解析器的空行终止规则误判为块边界）替换为
+// "> "。行数不变，golden 语料（无标记行/空行）逐字节不变。
+func NeutralizePromptMarkers(text string) string {
+	lines := strings.Split(text, "\n")
+	for i, line := range lines {
+		trimmed := strings.TrimSpace(line)
+		if trimmed == "" {
+			// 空/纯空白行 → 非空数据行（解析器的空行终止规则与
+			// 值内换行注入的边界，#30/#33；行数不变）。
+			lines[i] = "> "
+			continue
+		}
+		for _, m := range promptMarkers {
+			if strings.HasPrefix(trimmed, m) {
+				lines[i] = "> " + line
+				break
+			}
+		}
+	}
+	return strings.Join(lines, "\n")
+}
+
 // FormatSections 把 sections 渲染为 prompt 文本：按分节名排序的
-// "name: text" 行；空 / nil → "Not specified"。
+// "name: text" 行；空 / nil → "Not specified"。值内文本经
+// NeutralizePromptMarkers 中和（用户文本不得冒充模板结构——
+// bamlllm 反解析器与空行终止规则的注入面，RT-2026-08）。
 func FormatSections(sections map[string]string) string {
 	if len(sections) == 0 {
 		return NotSpecified
@@ -72,18 +114,19 @@ func FormatSections(sections map[string]string) string {
 	sort.Strings(keys)
 	lines := make([]string, 0, len(keys))
 	for _, k := range keys {
-		lines = append(lines, fmt.Sprintf("%s: %s", k, sections[k]))
+		lines = append(lines, fmt.Sprintf("%s: %s", k, NeutralizePromptMarkers(sections[k])))
 	}
 	return strings.Join(lines, "\n")
 }
 
 // FormatRawText 把 profile 原始分节渲染为 extract prompt 的 raw_text
 // （Python 侧按 sections dict 的插入序 join；Go 侧配置加载时保序，
-// 由调用方传入已保序键列表）。
+// 由调用方传入已保序键列表）。值内文本经 NeutralizePromptMarkers
+// 中和（parseExtractPrompt 的 begin/end 标记注入面）。
 func FormatRawText(sections []struct{ Name, Text string }) string {
 	lines := make([]string, 0, len(sections))
 	for _, s := range sections {
-		lines = append(lines, fmt.Sprintf("%s: %s", s.Name, s.Text))
+		lines = append(lines, fmt.Sprintf("%s: %s", s.Name, NeutralizePromptMarkers(s.Text)))
 	}
 	return strings.Join(lines, "\n")
 }

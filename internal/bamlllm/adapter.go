@@ -293,7 +293,17 @@ func parseScorePrompt(prompt string) ([]types.PairScoringInput, string, error) {
 			return nil, "", fmt.Errorf("pair (%s, %s): %w", u1, u2, err)
 		}
 		if instr != "" {
-			instruction = instr
+			// 受信 instruction 一致性（RT-2026-08 #38）：模板给每块注入
+			// 同一 instruction；块间不一致 = 有画像文本冒充了标记行
+			// （渲染端中和失效或自定义模板结构异常）——fail loud 拒绝
+			// 整批，绝不静默采用最后一个非空值（last-pair-wins 毒化）。
+			if instruction == "" {
+				instruction = instr
+			} else if instr != instruction {
+				return nil, "", fmt.Errorf(
+					"bamlllm: 批内块间 instruction 不一致（画像文本疑似冒充模板标记，拒绝整批）: %q vs %q",
+					instruction, instr)
+			}
 		}
 		pairs = append(pairs, types.PairScoringInput{
 			User1: u1, User2: u2, User1_sections: s1, User2_sections: s2,
@@ -302,26 +312,41 @@ func parseScorePrompt(prompt string) ([]types.PairScoringInput, string, error) {
 	return pairs, instruction, nil
 }
 
-// parseScoringBlock 解析单对渲染块中的双方 sections 与 instruction
-// （默认模板标记：Person A (user1): / Person B (user2): / Instruction:）。
+// scoringBlockMarkers 是打分块的行首结构标记（渲染端
+// engine.NeutralizePromptMarkers 保证用户文本不会出现这些行首形态；
+// 此处再做行首锚定——中段子串 "foo Instruction: bar" 不命中）。
+var scoringBlockMarkers = regexp.MustCompile(`(?m)^(Person A \(user1\):|Person B \(user2\):|Instruction:)`)
+
+// parseScoringBlock 解析单对渲染块中的双方 sections 与 instruction。
 //
-// instruction 截至其后首个空行（recipe.instruction 是折叠标量，
-// 内部无空行；模板在 {instruction} 后固定接空行 + "Score from..."）。
+// 切分按行首标记的**出现位置**（模板结构顺序 A < B < I），不依赖
+// 空行假设（值内空行经渲染端中和，不再终止块）。instruction 截至其
+// 后首个空行（recipe.instruction 是折叠标量）。
 func parseScoringBlock(block string) (s1, s2, instruction string, err error) {
-	const (
-		markerA = "Person A (user1):"
-		markerB = "Person B (user2):"
-		markerI = "Instruction:"
-	)
-	iA := strings.Index(block, markerA)
-	iB := strings.Index(block, markerB)
-	iI := strings.Index(block, markerI)
+	locs := scoringBlockMarkers.FindAllStringSubmatchIndex(block, -1)
+	var iA, iB, iI = -1, -1, -1
+	for _, loc := range locs {
+		switch block[loc[2]:loc[3]] {
+		case "Person A (user1):":
+			if iA == -1 {
+				iA = loc[0]
+			}
+		case "Person B (user2):":
+			if iB == -1 {
+				iB = loc[0]
+			}
+		case "Instruction:":
+			if iI == -1 {
+				iI = loc[0]
+			}
+		}
+	}
 	if iA == -1 || iB == -1 || iI == -1 || !(iA < iB && iB < iI) {
 		return "", "", "", fmt.Errorf("打分块缺少 Person A/B 与 Instruction 标记（默认模板结构）")
 	}
-	s1 = strings.TrimSpace(block[iA+len(markerA) : iB])
-	s2 = strings.TrimSpace(block[iB+len(markerB) : iI])
-	instruction = firstParagraph(block[iI+len(markerI):])
+	s1 = strings.TrimSpace(block[iA+len("Person A (user1):") : iB])
+	s2 = strings.TrimSpace(block[iB+len("Person B (user2):") : iI])
+	instruction = firstParagraph(block[iI+len("Instruction:"):])
 	return s1, s2, instruction, nil
 }
 
@@ -390,6 +415,12 @@ func parseHydePrompt(prompt string) (name, content string, n int, err error) {
 
 // parseIntroPrompt 从话术 prompt 还原双方姓名、sections 与 instruction
 // （默认模板标记：Person A: name / Person B: name / Instruction:）。
+//
+// 结构顺序强制（RT-2026-08 #33/#34/#30）：Person A < Person B <
+// Instruction 的行首标记位置切分 sections；用户画像文本经渲染端
+// engine.NeutralizePromptMarkers 中和（值内不可能出现行首标记行/空行）。
+// 违反结构顺序 → 描述性错误而非 panic（此前 slice 越界可被一行画像
+// 文本触发，远程 DoS）。
 func parseIntroPrompt(prompt string) (u1, s1, u2, s2, instruction string, err error) {
 	lines := strings.Split(prompt, "\n")
 	type person struct {
@@ -402,34 +433,61 @@ func parseIntroPrompt(prompt string) (u1, s1, u2, s2, instruction string, err er
 		trimmed := strings.TrimSpace(line)
 		switch {
 		case strings.HasPrefix(trimmed, "Person A:"):
-			people = append(people, person{strings.TrimSpace(strings.TrimPrefix(trimmed, "Person A:")), i + 1})
+			if len(people) == 0 {
+				people = append(people, person{strings.TrimSpace(strings.TrimPrefix(trimmed, "Person A:")), i + 1})
+			}
 		case strings.HasPrefix(trimmed, "Person B:"):
-			people = append(people, person{strings.TrimSpace(strings.TrimPrefix(trimmed, "Person B:")), i + 1})
+			if len(people) == 1 {
+				people = append(people, person{strings.TrimSpace(strings.TrimPrefix(trimmed, "Person B:")), i + 1})
+			}
 		case strings.HasPrefix(trimmed, "Instruction:"):
-			instrIdx = i
+			if instrIdx == -1 {
+				instrIdx = i
+			}
 		}
 	}
 	if len(people) != 2 {
 		return "", "", "", "", "", fmt.Errorf("bamlllm: 话术 prompt 缺少 Person A:/Person B: 标记")
 	}
-	sectionEnd := len(lines)
-	if instrIdx >= 0 {
-		sectionEnd = instrIdx
-		instruction = strings.TrimSpace(strings.TrimPrefix(strings.TrimSpace(lines[instrIdx]), "Instruction:"))
+	// 结构顺序：Instruction 行（若存在）必须在 Person B 之后——画像
+	// 注入的标记行（即使中和失效）只会落在块内早于 Person B 的位置，
+	// 这里直接拒绝异常结构而非越界切片。
+	if instrIdx >= 0 && instrIdx < people[1].start {
+		return "", "", "", "", "", fmt.Errorf(
+			"bamlllm: 话术 prompt 的 Instruction 行出现在 Person B 之前（结构异常，疑似画像注入）")
 	}
-	// sections 块：Person 行之后到首个空行（FormatSections 输出不含
-	// 空行；模板在 {user*_sections} 后固定接空行 + 下一段说明）。
-	block := func(start int) string {
-		end := sectionEnd
-		for i := start; i < sectionEnd; i++ {
+	// sections 块：A = [A 行后, B 行前)；B = [B 行后, Instruction 行前
+	// 或首个空行——默认模板 B 块后有模板尾部说明（空行分隔），值内
+	// 空行已被渲染端中和为 "> " 数据行，空行终止只会命中模板边界。
+	block := func(start, hardEnd int) (string, error) {
+		if start > len(lines) || (hardEnd >= 0 && start > hardEnd) {
+			return "", fmt.Errorf("bamlllm: 话术 prompt 结构异常（块起点越界）")
+		}
+		end := len(lines)
+		if hardEnd >= 0 && hardEnd < end {
+			end = hardEnd
+		}
+		for i := start; i < end; i++ {
 			if strings.TrimSpace(lines[i]) == "" {
 				end = i
 				break
 			}
 		}
-		return strings.TrimSpace(strings.Join(lines[start:end], "\n"))
+		if start > end {
+			return "", fmt.Errorf("bamlllm: 话术 prompt 结构异常（块切片越界 [%d:%d]）", start, end)
+		}
+		return strings.TrimSpace(strings.Join(lines[start:end], "\n")), nil
 	}
-	s1 = block(people[0].start)
-	s2 = block(people[1].start)
+	s1, err = block(people[0].start, people[1].start-1)
+	if err != nil {
+		return "", "", "", "", "", err
+	}
+	s2, err = block(people[1].start, instrIdx)
+	if err != nil {
+		return "", "", "", "", "", err
+	}
+	if instrIdx >= 0 {
+		instruction = strings.TrimSpace(strings.TrimPrefix(strings.TrimSpace(lines[instrIdx]), "Instruction:"))
+	}
 	return people[0].name, s1, people[1].name, s2, instruction, nil
 }

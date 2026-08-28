@@ -87,6 +87,40 @@ func Evaluate(in EvaluateInput) (domain.EvaluationReport, error) {
 	for i, p := range in.Predictions {
 		lengths[i] = len(p)
 	}
+	meta := map[string]any{"prediction_lengths": lengths}
+	// 零匹配可见性（RT-2026-08 #27）：envy 计数只覆盖有匹配的节点
+	// （own-best 语义），竞争中的零匹配受害者对 envy 门禁"失明"——
+	// 这里按 MatchProb 行/列全零统计双侧零匹配人数，供运营侧监控
+	// （与 b_min_violations 互补：b_min=0 的部署也可见）。
+	if in.MatchProb != nil && in.MatchProb.Rows() > 0 && in.MatchProb.Cols() > 0 {
+		zeroLeft, zeroRight := 0, 0
+		for i := 0; i < in.MatchProb.Rows(); i++ {
+			anyMatch := false
+			for j := 0; j < in.MatchProb.Cols(); j++ {
+				if in.MatchProb[i][j] > 0.5 {
+					anyMatch = true
+					break
+				}
+			}
+			if !anyMatch {
+				zeroLeft++
+			}
+		}
+		for j := 0; j < in.MatchProb.Cols(); j++ {
+			anyMatch := false
+			for i := 0; i < in.MatchProb.Rows(); i++ {
+				if in.MatchProb[i][j] > 0.5 {
+					anyMatch = true
+					break
+				}
+			}
+			if !anyMatch {
+				zeroRight++
+			}
+		}
+		meta["zero_matched_left"] = zeroLeft
+		meta["zero_matched_right"] = zeroRight
+	}
 	return domain.EvaluationReport{
 		HRAt1:          float64(hits1) / float64(total),
 		HRAt3:          float64(hits3) / float64(total),
@@ -95,7 +129,7 @@ func Evaluate(in EvaluateInput) (domain.EvaluationReport, error) {
 		EnvyCountLeft:  leftEnvy,
 		EnvyCountRight: rightEnvy,
 		TotalScenarios: total,
-		Metadata:       map[string]any{"prediction_lengths": lengths},
+		Metadata:       meta,
 	}, nil
 }
 

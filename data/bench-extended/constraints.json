@@ -1,0 +1,91 @@
+{
+  "scenario": "constraints",
+  "description": "硬约束资格过滤：m1/m2 声明显式硬约束，pX1/pX2 词面上更强（回声约束词）但可见违反；p1/p2 为合规黄金对。关闭过滤时推荐排序倒挂（违反者压过合规黄金），开启后违反对被资格清零。",
+  "embedding_only": false,
+  "members": {
+    "m1": {
+      "needs": "need ka retail entry execution this quarter, hard constraint: partner must have mainland china entity for compliance",
+      "project": "offline expansion program 300 doors",
+      "skills": "brand marketing category strategy",
+      "vision": "shelf presence in top chains"
+    },
+    "m2": {
+      "needs": "on-site rollout across 20 cities, hard constraint: local team mandatory for驻场",
+      "project": "store network buildout phase 2",
+      "skills": "channel operations logistics",
+      "vision": "reliable field execution"
+    },
+    "m3": {
+      "needs": "need customs clearance broker for expanding imports",
+      "project": "import volume doubling this year",
+      "skills": "sourcing procurement",
+      "vision": "smooth cross border flow"
+    },
+    "m4": {
+      "needs": "need livestream commerce team for new product launches",
+      "project": "monthly launch calendar",
+      "skills": "ecommerce operations analytics",
+      "vision": "conversion driven growth"
+    },
+    "m5": {
+      "needs": "need warehousing capacity overflow",
+      "project": "seasonal storage surge",
+      "skills": "inventory planning",
+      "vision": "flexible fulfillment"
+    },
+    "m6": {
+      "needs": "need packaging design refresh",
+      "project": "rebrand next quarter",
+      "skills": "product management",
+      "vision": "premium shelf appeal"
+    }
+  },
+  "pool": {
+    "p1": {
+      "needs": "consumer brands seeking offline growth",
+      "project": "ka entry service line east china",
+      "skills": "ka retail entry execution slotting negotiation display programs",
+      "note": "shanghai based entity 40 staff on-site teams",
+      "vision": "brands on mainstream shelves"
+    },
+    "pX1": {
+      "needs": "consumer brands to expand offline",
+      "project": "advisory for retail entry programs",
+      "skills": "ka retail entry execution mainland china entity requirements display advisory",
+      "note": "no mainland entity, fully remote delivery",
+      "vision": "brands on mainstream shelves"
+    },
+    "p2": {
+      "needs": "retailers building store networks",
+      "project": "field rollout crews",
+      "skills": "on-site rollout execution staffing supervision",
+      "note": "local teams in 15 cities",
+      "vision": "reliable field execution"
+    },
+    "pX2": {
+      "needs": "retail programs to support",
+      "project": "rollout advisory practice",
+      "skills": "on-site rollout local team coordination advisory",
+      "note": "fully remote, no local team on ground",
+      "vision": "reliable field execution"
+    },
+    "p3": {
+      "needs": "importers needing border services",
+      "project": "customs brokerage desk",
+      "skills": "customs clearance broker hs classification",
+      "vision": "smooth cross border flow"
+    },
+    "p4": {
+      "needs": "brands launching new products",
+      "project": "livestream studio network",
+      "skills": "livestream commerce team hosts conversion",
+      "vision": "conversion driven growth"
+    }
+  },
+  "ground_truth": {
+    "m1": "p1",
+    "m2": "p2",
+    "m3": "p3",
+    "m4": "p4"
+  }
+}

@@ -33,6 +33,7 @@ var layerOf = map[string]int{
 	"internal/engine": 1, "internal/signal": 1,
 	"config": 0 + 2, "internal/store": 2, "internal/feedback": 2,
 	"internal/bench": 2, "internal/pipeline": 2, "internal/bamlllm": 2,
+	"internal/metamorphic": 2,
 	// L3：cmd 下任意子包。
 }
 

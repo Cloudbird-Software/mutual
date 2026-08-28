@@ -10,8 +10,16 @@ type Profile struct {
 	LastUpdatedAt *string // 可选，ISO-8601 时间戳
 }
 
-// NewProfile 构造 Profile 并校验最小不变量：ID 非空、sections 非 nil。
+// NewProfile 构造 Profile 并校验最小不变量：ID 非空、sections 非 nil、
+// ID 不含会破坏下游 prompt 结构的字符（RT-2026-08 #34：ID 原样渲染进
+// scoring 块头 "### Pair N: (u1, u2)" 与 intro 的 Person 行——换行/逗号/
+// 括号可注入受信指令槽位或伪造批量块头，故在构造咽喉处拒绝）。
 func NewProfile(id UserID, sections map[SectionName]string, lastUpdatedAt *string) Profile {
+	for _, r := range id {
+		if r < 0x20 || r == ',' || r == '(' || r == ')' {
+			return Profile{}
+		}
+	}
 	if sections == nil {
 		sections = map[SectionName]string{}
 	}
@@ -41,6 +49,17 @@ func ProfileFromMap(d map[string]any) (Profile, error) {
 	id, ok := idAny.(string)
 	if !ok || id == "" {
 		return Profile{}, &ContractError{Field: "id", Reason: "must be a non-empty string"}
+	}
+	// ID 结构校验（RT-2026-08 #34）：ID 原样渲染进 scoring 块头与 intro
+	// Person 行，控制字符/逗号/括号可注入受信指令槽位或伪造批量块头。
+	for _, r := range id {
+		if r < 0x20 || r == ',' || r == '(' || r == ')' {
+			return Profile{}, &ContractError{
+				Field: "id",
+				Reason: "must not contain control characters, comma, or parentheses " +
+					"(prompt structure injection surface)",
+			}
+		}
 	}
 	sections := map[SectionName]string{}
 	if raw, ok := d["sections"].(map[string]any); ok {

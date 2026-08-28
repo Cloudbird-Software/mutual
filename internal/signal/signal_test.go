@@ -2,6 +2,7 @@ package signal
 
 import (
 	"encoding/json"
+	"math"
 	"strings"
 	"testing"
 
@@ -9,11 +10,12 @@ import (
 	"github.com/Cloudbird-Software/mutual/internal/rng"
 )
 
-// TestFakeLLMScoringRoute 打分类路径：按 prompt 中出现的 cohort id
-// 查表（spec/04-fixtures.md §7.1，契约由测试守护）。
+// TestFakeLLMScoringRoute 打分类路径：按块头结构化查表（spec/04
+// §7.1 的路由语义已收紧——RT-2026-08 #35：全文 Contains 搜索可被
+// 画像文本劫持，块头由 engine.buildScoringPrompt 构造，单块也带）。
 func TestFakeLLMScoringRoute(t *testing.T) {
 	f := &FakeLLM{}
-	raw, err := f.CompleteScore("Score (alice, bob) respond a_to_b b_to_a", "m")
+	raw, err := f.CompleteScore("### Pair 1: (bob, alice)\nScore (alice, bob) respond a_to_b b_to_a", "m")
 	if err != nil {
 		t.Fatalf("CompleteScore: %v", err)
 	}
@@ -26,6 +28,23 @@ func TestFakeLLMScoringRoute(t *testing.T) {
 	}
 	if resp.AToB != 0.85 || resp.BToA != 0.90 {
 		t.Errorf("alice__bob 分数表: got %+v want 0.85/0.90", resp)
+	}
+
+	// 无块头（非标准调用）→ 兜底 0.5/0.5，画像文本中的 cohort id
+	// 不能劫持路由（#35 回归防线）。
+	raw2, err := f.CompleteScore("Score (alice, bob) respond a_to_b b_to_a", "m")
+	if err != nil {
+		t.Fatalf("CompleteScore: %v", err)
+	}
+	var resp2 struct {
+		AToB float64 `json:"a_to_b"`
+		BToA float64 `json:"b_to_a"`
+	}
+	if err := json.Unmarshal([]byte(raw2), &resp2); err != nil {
+		t.Fatalf("打分响应应为 JSON: %v", err)
+	}
+	if resp2.AToB != 0.5 || resp2.BToA != 0.5 {
+		t.Errorf("无块头应兜底 0.5/0.5（路由不可被文本劫持）: got %+v", resp2)
 	}
 }
 
@@ -264,5 +283,74 @@ func TestDomainHashTextStable(t *testing.T) {
 	}
 	if domain.HashText("a") == domain.HashText("b") {
 		t.Fatal("HashText 应区分不同文本")
+	}
+}
+
+// TestScoreMatrixBlendedZeroParity embedW=0 时与 ScoreMatrix 逐位一致
+// （零值兼容契约：blending 选项不得扰动现行 golden 语义）。
+func TestScoreMatrixBlendedZeroParity(t *testing.T) {
+	members := []OrderedSections{
+		{ID: "m0", Sections: map[string]string{"needs": "rust audit", "skills": "tokio", "vision": "infra"}},
+		{ID: "m1", Sections: map[string]string{"needs": "react a11y", "skills": "figma", "vision": "tools"}},
+	}
+	pool := []OrderedSections{
+		{ID: "p0", Sections: map[string]string{"needs": "clients", "skills": "rust blockchain", "vision": "infra"}},
+	}
+	base := ScoreMatrix(members, pool, 7, 0.24, false)
+	got := ScoreMatrixBlended(members, pool, 7, 0.24, 0, 1)
+	for m, row := range base {
+		for p, want := range row {
+			if got[m][p] != want {
+				t.Fatalf("embedW=0 失配 %s×%s: got %+v want %+v", m, p, got[m][p], want)
+			}
+		}
+	}
+}
+
+// TestScoreMatrixBlendedMath 1×1 显式核算：pref = clamp(w_e·noisy(embed) +
+// w_l·noisy(dir))，方向流与 ScoreMatrix 一致、embed 流独立（seed+777777）。
+func TestScoreMatrixBlendedMath(t *testing.T) {
+	mem := OrderedSections{ID: "m", Sections: map[string]string{
+		"needs": "kubernetes cost", "skills": "devops", "vision": "cloud"}}
+	pl := OrderedSections{ID: "p", Sections: map[string]string{
+		"needs": "teams", "skills": "kubernetes finops terraform", "vision": "cloud"}}
+	const noise = 0.2
+	base := ScoreMatrix([]OrderedSections{mem}, []OrderedSections{pl}, 42, noise, false)
+
+	rsE := rng.New(uint32(uint32(42) + 777777))
+	embedNoisy := Noisy(EmbedScore(mem.Sections, pl.Sections), rsE, noise)
+
+	const we, wl = 0.35, 0.65
+	got := ScoreMatrixBlended([]OrderedSections{mem}, []OrderedSections{pl}, 42, noise, we, wl)
+	clamp := func(v float64) float64 {
+		return math.Max(0, math.Min(1, v))
+	}
+	wantAToB := clamp(we*embedNoisy + wl*base["m"]["p"].AToB)
+	wantBToA := clamp(we*embedNoisy + wl*base["m"]["p"].BToA)
+	if got["m"]["p"].AToB != wantAToB {
+		t.Fatalf("AToB: got %v want %v", got["m"]["p"].AToB, wantAToB)
+	}
+	if got["m"]["p"].BToA != wantBToA {
+		t.Fatalf("BToA: got %v want %v", got["m"]["p"].BToA, wantBToA)
+	}
+}
+
+// TestTokenizeCJK CJK 二元组：中文画像的离线可观测性（跨语言盲区修复）。
+// ASCII 路径不受影响（golden 语义不变）；英文 token 与中文二元组并存。
+func TestTokenizeCJK(t *testing.T) {
+	got := Tokenize("急需金融科技方向的lag free settlement能力")
+	joined := strings.Join(got, "|")
+	for _, want := range []string{"急需", "需金", "金融", "融科", "科技", "lag", "settlement"} {
+		if !strings.Contains(joined, want) {
+			t.Fatalf("缺 %q: %v", want, got)
+		}
+	}
+	// 纯 ASCII 输入零变化（golden 安全）
+	if got := Tokenize("Rust Kubernetes FinOps 42"); strings.Join(got, " ") != "rust kubernetes finops 42" {
+		t.Fatalf("ASCII 路径被扰动: %v", got)
+	}
+	// 英文路径行为不变：token 集合与旧实现一致
+	if got := Tokenize("Hello, World! pipeline-2"); strings.Join(got, " ") != "hello world pipeline 2" {
+		t.Fatalf("英文切词异常: %v", got)
 	}
 }

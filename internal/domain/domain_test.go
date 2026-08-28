@@ -188,3 +188,15 @@ func TestProfileFromMapContract(t *testing.T) {
 		t.Fatalf("profile 解析错误: %+v", p)
 	}
 }
+
+// TestEnvyRate 规模化公平性度量（total_envy O(N²) 失义的归一化）。
+func TestEnvyRate(t *testing.T) {
+	r := EvaluationReport{EnvyCountLeft: 4, EnvyCountRight: 6, TotalScenarios: 20}
+	if got := r.EnvyRate(); got != 0.5 {
+		t.Fatalf("EnvyRate: got %v want 0.5", got)
+	}
+	zero := EvaluationReport{}
+	if got := zero.EnvyRate(); got != 0 {
+		t.Fatalf("零场景 EnvyRate: got %v want 0", got)
+	}
+}

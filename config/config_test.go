@@ -23,11 +23,14 @@ func TestDefaultValues(t *testing.T) {
 	if cfg.MatchingMinProfiles() != 2 {
 		t.Errorf("min_profiles_required: got %d want 2", cfg.MatchingMinProfiles())
 	}
+	if !cfg.MatchingHardFilter() {
+		t.Errorf("matching.hard_constraint_filter: got false want true（生产姿态默认开启）")
+	}
 	if cfg.NoveltyWindowMonths() != 6 {
 		t.Errorf("novelty_window_months: got %d want 6", cfg.NoveltyWindowMonths())
 	}
 	bud := cfg.Budgets()
-	if bud.PerProfileCap != 24 || bud.MaxCalls != 1200 || bud.BatchSize != 2 {
+	if bud.PerProfileCap != 48 || bud.MaxCalls != 4800 || bud.BatchSize != 2 {
 		t.Errorf("budgets: got %+v", bud)
 	}
 	g := cfg.Gates()

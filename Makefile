@@ -4,7 +4,7 @@
 # 契约：CI-Workflows check.yml（runtime: go）调用 make setup && make check。
 # ---------------------------------------------------------------------------
 
-.PHONY: setup fmt lint arch test build evaluate check baml-generate
+.PHONY: setup fmt lint arch test build evaluate check baml-generate nightly
 
 setup:  ; go mod download
 fmt:    ; gofmt -l -w cmd internal config
@@ -17,6 +17,10 @@ build:  ; go build ./...
 # 离线评测门禁（HR@3>=0.6 / NDCG@5>=0.4 / total_envy<=2，spec/03-oracles.md）
 evaluate: ; go run ./cmd/mutual evaluate --config config/default.yaml --fail-on-gate
 check:  lint arch test evaluate
+
+# 夜间大规模回归（build tag 隔离，日常 CI 不受影响）：三领域大规模
+# 语料的蜕变关系 + 求解确定性/耗时守卫（internal/metamorphic/nightly_test.go）
+nightly: ; go test -tags=nightly ./internal/metamorphic/ -v
 
 # baml-generate 重生成 BAML 客户端（prompt 契约变更时用，版本与
 # baml_src/generators.baml 的 version 一致；变更须同步 golden/baml/ 快照）
