@@ -94,6 +94,15 @@ func RunFullMatch(in FullMatchInput, cfg *config.Config, deps Deps) (*domain.Mat
 		if err := deps.validateEmbedder(); err != nil {
 			return nil, err
 		}
+		// 分节长度契约（RT3 #50）：注册层（ProfileFromMap）已拒绝超长
+		// 分节；直接构造 Profile 的调用方在此 fail-loud，先于任何
+		// extract/LLM/embed 花费（财务 DoS 防护）。
+		for _, p := range in.Profiles {
+			if name, over := domain.OverlongSection(p.Sections); over {
+				return nil, fmt.Errorf("拒绝 profile %q：分节 %q 超长（> %d runes，财务 DoS 防护）",
+					string(p.ID), string(name), domain.MaxSectionLen)
+			}
+		}
 		minRequired := cfg.MatchingMinProfiles()
 		if len(in.Profiles) < minRequired {
 			return nil, fmt.Errorf(
@@ -170,6 +179,12 @@ func RunQueryMatch(in QueryMatchInput, cfg *config.Config, deps Deps) (*domain.M
 	queryID := in.QueryID
 	if queryID == "" {
 		queryID = "query"
+	}
+	// query 文本长度契约（RT3 #50）：query 会广播到全部 section 名并
+	// 全文进入 extract/embedding——超长 query 是同一财务 DoS 面。
+	if n := len([]rune(in.QueryText)); n > domain.MaxSectionLen {
+		return nil, fmt.Errorf("拒绝 query text：长度 %d 超过上限 %d runes（财务 DoS 防护）",
+			n, domain.MaxSectionLen)
 	}
 
 	// query 文本广播到全部 section 名，保证 query bundle 与 pool 的
