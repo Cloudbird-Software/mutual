@@ -52,6 +52,23 @@
   Scorecard Fuzzing=0 → 自愈；mutual #5）。
 - 初始模板工程（CI gate / hygiene / dependabot / automerge 全套护栏）。
 ### Fixed
+- engine：召回融合负权重分母放大（红队 RT3 #54，高危）——"缺失分节
+  从分母豁免"在负权重分节上可被选择性填充利用：攻击者只填交叉对齐的
+  负权重分节、留空正权重分节，分母被压到 0.60 而分子保留 0.80 交叉项，
+  融合分 4/3 放大突破余弦值域，对诚实用户获 100%+ 不对等召回优势并
+  劫持 LLM 预算名额。修复：缺失 term 按零相似计入分母（留空不再豁免
+  稀释）+ 融合输出 [0,1] 值域 clamp；双侧全有效（golden 语料）时逐位
+  不变。spec/05-boundaries.md §1 语义同步更新。
+- engine：extract 路径 raw_text 渲染缺失标记中和（红队 RT3 #52，中危）——
+  formatProfileRawText 不经 NeutralizePromptMarkers 直接拼接，画像标记行
+  与非规范分节名（"Instruction:"、"### Pair 9"）原样进入提取 LLM，
+  scoring/intro 与 extract 防线不一致（extract 是唯一缺失确定性中和层的
+  用户可控输入路径）。修复：raw_text 整体行级中和，与 FormatSections
+  同款防线；删除死代码 FormatRawText。golden 语料（无标记行）逐字节不变。
+- engine：硬约束资格门非确定性裁决（红队 RT3 #57，低危）——
+  DetectHardConstraint/violates 对 sections map 无序遍历，多约束声明时
+  规则族逐次运行随机翻转、跨分节违反词拼接顺序随机，同一输入的资格
+  裁决不可复现（违反确定性契约）。修复：分节名排序遍历/排序拼接。
 - config：YAML 子集解析器空键（冒号行与冒号加值形态）静默产出空键 map 而非报错——fuzz 发现并修复。
 
 

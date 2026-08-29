@@ -16,6 +16,7 @@
 package engine
 
 import (
+	"sort"
 	"strings"
 
 	"github.com/Cloudbird-Software/mutual/internal/domain"
@@ -55,8 +56,16 @@ var constraintDeclarators = []string{"hard constraint", "硬约束", "hard requi
 
 // DetectHardConstraint 从画像分节检出显式硬约束（返回规则族与命中原文行）。
 // 无约束返回 ok=false。大小写不敏感；逐行扫描（约束声明是行级语句）。
+// 分节按名排序遍历（RT3 #57）：map 无序遍历使多约束声明时返回的
+// 规则族逐次运行随机翻转，违反确定性契约——裁决必须可审计、可复现。
 func DetectHardConstraint(sections map[domain.SectionName]string) (kind string, line string, ok bool) {
-	for _, text := range sections {
+	names := make([]string, 0, len(sections))
+	for name := range sections {
+		names = append(names, string(name))
+	}
+	sort.Strings(names)
+	for _, name := range names {
+		text := sections[domain.SectionName(name)]
 		for _, rawLine := range strings.Split(text, "\n") {
 			line = strings.TrimSpace(rawLine)
 			if line == "" {
@@ -87,6 +96,8 @@ func DetectHardConstraint(sections map[domain.SectionName]string) (kind string, 
 
 // Violates 判定 counterpart 画像是否可见地违反本约束。
 // 要求 counterpart 显式自述违反事实；无自述放行（交 LLM 层判断）。
+// haystack 按分节名排序拼接（RT3 #57）：拼接顺序决定跨分节边界的
+// 违反词（如 "fully"+"remote"）是否成型——随机顺序 = 随机裁决。
 func violates(kind string, counterpartSections map[domain.SectionName]string) (bool, string) {
 	var rule *constraintRule
 	for i := range constraintRules {
@@ -98,11 +109,16 @@ func violates(kind string, counterpartSections map[domain.SectionName]string) (b
 	if rule == nil {
 		return false, ""
 	}
-	var all []string
-	for _, text := range counterpartSections {
-		all = append(all, strings.ToLower(text))
+	names := make([]string, 0, len(counterpartSections))
+	for name := range counterpartSections {
+		names = append(names, string(name))
 	}
-	haystack := strings.Join(all, " ")
+	sort.Strings(names)
+	parts := make([]string, 0, len(names))
+	for _, name := range names {
+		parts = append(parts, strings.ToLower(counterpartSections[domain.SectionName(name)]))
+	}
+	haystack := strings.Join(parts, " ")
 	for _, v := range rule.violations {
 		if strings.Contains(haystack, v) {
 			return true, v
