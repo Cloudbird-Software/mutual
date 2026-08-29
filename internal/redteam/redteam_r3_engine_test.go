@@ -181,6 +181,59 @@ func TestRT3_NegativeWeightDenominatorAmplification(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
+// #49：硬约束资格过滤否定盲区（合法配对误杀）
+// ---------------------------------------------------------------------------
+
+// TestRT3_EligibilityNegationBlindness #49（场景 A）：否定式自述
+// （"杜绝纯远程交付" = 不做远程）不得被子串 "纯远程"/"远程交付"
+// 误判为可见违反——误杀合法 pair 比漏放行更糟（fail-safe 方向是
+// 无证据不排除，交 LLM 层）。
+func TestRT3_EligibilityNegationBlindness(t *testing.T) {
+	holder := domain.ExtractedSections{ID: "constraint_holder", Sections: map[domain.SectionName]string{
+		"skills": "Hard constraint: 大陆实体 required for cooperation",
+	}}
+	// 合法成员：实为大陆实体，否定式自述（issue #49 场景 A 原文）。
+	legitMainland := domain.ExtractedSections{ID: "legit_mainland", Sections: map[domain.SectionName]string{
+		"skills":  "我们坚持大陆实体运营，杜绝纯远程交付，已运营 5 年",
+		"project": "Haikou bonded warehouse",
+	}}
+	// 真违反者：同款关键词、无否定语。
+	realViolator := domain.ExtractedSections{ID: "real_violator", Sections: map[domain.SectionName]string{
+		"skills": "团队采用纯远程交付模式",
+	}}
+
+	excl, _ := engine.EligibilityExclusions(
+		[]domain.ExtractedSections{holder},
+		[]domain.ExtractedSections{legitMainland, realViolator})
+
+	if excl[domain.StablePairID("constraint_holder", "legit_mainland")] {
+		t.Fatal("REPRODUCED #49: 否定式自述（杜绝纯远程交付）被误判违反——" +
+			"合法大陆实体成员被资格门误杀")
+	}
+	if !excl[domain.StablePairID("constraint_holder", "real_violator")] {
+		t.Fatal("场景失效：无否定语的真违反者（纯远程交付）未被排除——" +
+			"否定守卫不得放过真自述违反")
+	}
+
+	// 英文否定：同语义。
+	enLegit := domain.ExtractedSections{ID: "en_legit", Sections: map[domain.SectionName]string{
+		"based_in": "We never deliver fully remote; on-site across east china",
+	}}
+	enViolator := domain.ExtractedSections{ID: "en_violator", Sections: map[domain.SectionName]string{
+		"based_in": "Based in Singapore, fully remote delivery",
+	}}
+	excl2, _ := engine.EligibilityExclusions(
+		[]domain.ExtractedSections{holder},
+		[]domain.ExtractedSections{enLegit, enViolator})
+	if excl2[domain.StablePairID("constraint_holder", "en_legit")] {
+		t.Fatal("REPRODUCED #49: 英文否定式自述（never fully remote）被误判违反")
+	}
+	if !excl2[domain.StablePairID("constraint_holder", "en_violator")] {
+		t.Fatal("场景失效：英文真违反者（fully remote delivery）未被排除")
+	}
+}
+
+// ---------------------------------------------------------------------------
 // #57：硬约束资格门非确定性裁决
 // ---------------------------------------------------------------------------
 

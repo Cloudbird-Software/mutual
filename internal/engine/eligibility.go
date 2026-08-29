@@ -18,6 +18,7 @@ package engine
 import (
 	"sort"
 	"strings"
+	"unicode/utf8"
 
 	"github.com/Cloudbird-Software/mutual/internal/domain"
 )
@@ -119,12 +120,77 @@ func violates(kind string, counterpartSections map[domain.SectionName]string) (b
 		parts = append(parts, strings.ToLower(counterpartSections[domain.SectionName(name)]))
 	}
 	haystack := strings.Join(parts, " ")
+	// 否定盲区（RT3 #49）：子串匹配对否定语境失明——合法成员写
+	// "杜绝纯远程交付"（即"不做远程"）会因子串 "纯远程" 被误判违规、
+	// 静默砍掉合法 pair（比漏放行更糟：fail-safe 方向是无证据不排除）。
+	// 命中点紧邻前置否定语（"杜绝"/"not "等）→ 视为否定式自述，
+	// 不算可见违反，继续找其他命中/交 LLM 层。
 	for _, v := range rule.violations {
-		if strings.Contains(haystack, v) {
-			return true, v
+		start := 0
+		for {
+			idx := strings.Index(haystack[start:], v)
+			if idx == -1 {
+				break
+			}
+			pos := start + idx
+			if !negatedBefore(haystack, pos) {
+				return true, v
+			}
+			start = pos + len(v)
 		}
 	}
 	return false, ""
+}
+
+// negationCuesZH 是中文前置否定语（子串匹配，同子句内）。
+var negationCuesZH = []string{
+	"杜绝", "不做", "不提供", "不设", "不采用", "没有", "从未",
+	"拒绝", "严禁", "禁止", "避免", "排除", "防止",
+}
+
+// negationTokensEN 是英文否定词（词元匹配，避免 "know" 误含 "no"）。
+var negationTokensEN = []string{
+	"no", "not", "never", "don't", "doesn't", "won't",
+	"avoid", "refuse", "without",
+}
+
+// negatedBefore 判定 haystack 中 pos 处命中词所在子句（以句读
+// 。！？；?!，,\n 分隔）的前半段是否含否定语——"杜绝纯远程交付"
+// / "we never deliver fully remote" 均为否定式自述，不算可见违反。
+// 误判方向是 fail-safe 的：把真违反误读为否定 → 放行交 LLM 层
+// （打分契约对硬约束违反者单向封顶 0.1），不会误杀合法 pair。
+func negatedBefore(haystack string, pos int) bool {
+	start := pos
+	for start > 0 {
+		r, size := utf8.DecodeLastRuneInString(haystack[:start])
+		if isClauseDelim(r) {
+			break
+		}
+		start -= size
+	}
+	clause := strings.ToLower(haystack[start:pos])
+	for _, cue := range negationCuesZH {
+		if strings.Contains(clause, cue) {
+			return true
+		}
+	}
+	for _, tok := range strings.Fields(clause) {
+		for _, cue := range negationTokensEN {
+			if tok == cue {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+// isClauseDelim 判定子句分隔符（中英句读与换行）。
+func isClauseDelim(r rune) bool {
+	switch r {
+	case '。', '！', '？', '；', '，', '.', '!', '?', ';', ',', '\n':
+		return true
+	}
+	return false
 }
 
 // EligibilityExclusions 双向构建不合格 pair 集：source 声明约束且
