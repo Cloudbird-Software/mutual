@@ -1,0 +1,90 @@
+#!/usr/bin/env bash
+# ghcb —— cloudbrid-agent 便捷入口（ADR-0044 令牌 + ADR-0051 找活协议 + ADR-0055 front-desk 扩展）
+#
+# 用法:
+#   GH_TOKEN=$(ghcb <repo> [--refresh])   # 铸 App 单仓安装令牌（ADR-0044，原用法不变）
+#   ghcb next [repo]                      # 找活：列出 <repo>（缺省=origin 所在仓）state:ready 的卡
+#   ghcb claim <n> [repo]                 # 认领：在卡 #n 评论 /claim——conductor 校验先到先得并置
+#                                        # state:in-progress（ADR-0049 T3）；ghcb 不持有状态写权
+#   ghcb release <n> [repo]               # 释放：评论 /release——conductor 转介 arbiter 删租约
+#                                        # （仅 holder 本人或 owner 可成，ADR-0054 §4）
+#   ghcb status <n> [repo]                # 只读：卡标签态（真相源）+ arbiter 租约持有者/到期
+#   ghcb card-meta <n> [repo]             # 输出 PR body 应贴的卡元数据行（Card: <org>/<repo>#<n>）
+#
+# next/claim/release 用调用方自己的 gh 凭据（gh auth login）；认领合法性单一真源=conductor guard
+# + arbiter CAS（ADR-0055 转介）。status 读 arbiter 仓 refs/leases/*（只读，无写权要求）。
+set -euo pipefail
+
+origin_repo() {  # 从 origin 远端推断 owner/name；非 git 仓则空
+  git remote get-url origin 2>/dev/null | sed -E 's#.*github\.com[:/]##; s#\.git$##' || true
+}
+
+ORG="Cloudbird-Software"        # 本 CLI 是组织内部入口（org 段固定，仓段可省略）
+LEAS_REPO="$ORG/arbiter"        # 租约宿主仓（arbiter，ADR-0054）
+
+norm_repo() {  # 'repo' | 'owner/repo' → 'owner/repo'（org 段缺省补全）
+  local r="${1:?}"
+  [[ "$r" == */* ]] || r="$ORG/$r"
+  printf '%s' "$r"
+}
+
+CMD="${1:-}"
+case "$CMD" in
+  next)
+    REPO_ARG="${2:-$(origin_repo)}"
+    [[ -n "$REPO_ARG" ]] || { echo "错误：不在 git 仓内且未指定仓（用法: ghcb next [repo]）" >&2; exit 2; }
+    gh issue list --repo "$REPO_ARG" --label state:ready --state open       --json number,title --jq '.[] | "#\(.number) \(.title)"'       || { echo "查询失败：检查 gh 凭据（gh auth login）与仓权限" >&2; exit 2; }
+    ;;
+  claim)
+    # 参数序 <issue#> [repo]（首版误把 $1 当 repo，PR#157 修正）
+    N="${2:?用法: ghcb claim <issue#> [repo]}"
+    REPO_ARG="${3:-$(origin_repo)}"
+    [[ -n "$REPO_ARG" ]] || { echo "错误：不在 git 仓内且未指定仓" >&2; exit 2; }
+    # MSYS 路径转换豁免：Git Bash 会把以 / 开头的参数改写成 Windows 路径
+    # （实测 "/claim"→"D:/development/Git/claim"，conductor 白名单不认）；
+    # 非 MSYS 环境该 env 为无害空设
+    MSYS2_ARG_CONV_EXCL='/claim' MSYS_NO_PATHCONV=1       gh issue comment "$N" --repo "$REPO_ARG" --body "/claim" >/dev/null
+    echo "已评论 /claim（#$N @$REPO_ARG）——conductor 转介 arbiter CAS 裁决并置 state:in-progress；确认：ghcb status $N"
+    ;;
+  release)
+    # 释放租约（ADR-0055）：/release 评论由 conductor 转介 arbiter——非 holder/无租约=deny
+    N="${2:?用法: ghcb release <issue#> [repo]}"
+    REPO_ARG="${3:-$(origin_repo)}"
+    [[ -n "$REPO_ARG" ]] || { echo "错误：不在 git 仓内且未指定仓" >&2; exit 2; }
+    MSYS2_ARG_CONV_EXCL='/release' MSYS_NO_PATHCONV=1       gh issue comment "$N" --repo "$REPO_ARG" --body "/release" >/dev/null
+    echo "已评论 /release（#$N @$REPO_ARG）——conductor 转介 arbiter 释放租约（仅 holder/owner）；确认：ghcb status $N"
+    ;;
+  status)
+    # 只读：标签态（宪法 §12 真相源）+ 租约视图（arbiter refs/leases/<org>__<repo>__<n>）
+    N="${2:?用法: ghcb status <issue#> [repo]}"
+    REPO_ARG="${3:-$(origin_repo)}"
+    [[ -n "$REPO_ARG" ]] || { echo "错误：不在 git 仓内且未指定仓" >&2; exit 2; }
+    FULL="$(norm_repo "$REPO_ARG")"; NAME="${FULL##*/}"
+    gh issue view "$N" --repo "$FULL" --json number,title,state,labels,assignees \
+      --jq '"#\(.number) \(.title)\n  状态: \(.state) | 标签: \([.labels[].name] | join(", ")) | assignee: \([.assignees[].login] | join(", "))"' \
+      || { echo "查询失败：检查 gh 凭据与仓权限" >&2; exit 2; }
+    REF="refs/leases/${ORG}__${NAME}__${N}"
+    if SHA=$(gh api "repos/$LEAS_REPO/git/ref/$REF" --jq '.object.sha' 2>/dev/null); then
+      MSG=$(gh api "repos/$LEAS_REPO/git/commits/$SHA" --jq '.message' 2>/dev/null || true)
+      HOLDER=$(grep -o '"holder": *"[^"]*"' <<<"$MSG" | head -1 | sed 's/.*"holder": *"//; s/"$//' || true)
+      EXP=$(grep -o '"expires_at": *"[^"]*"' <<<"$MSG" | head -1 | sed 's/.*"expires_at": *"//; s/"$//' || true)
+      echo "  租约: holder=${HOLDER:-?} expires_at=${EXP:-?}（ref $REF）"
+    else
+      echo "  租约: 无活跃租约（ref $REF 不存在）"
+    fi
+    ;;
+  card-meta)
+    # 输出 PR body 必贴的卡元数据行（ADR-0055 决策 1：缺失=后续关卡 exit 3）
+    N="${2:?用法: ghcb card-meta <issue#> [repo]}"
+    REPO_ARG="${3:-$(origin_repo)}"
+    [[ -n "$REPO_ARG" ]] || { echo "错误：不在 git 仓内且未指定仓" >&2; exit 2; }
+    echo "Card: $(norm_repo "$REPO_ARG")#$N"
+    echo "提示：把上面一行原样贴进 PR body（缺失=后续关卡 exit 3）" >&2
+    ;;
+  *)
+    export REPO="${1:?用法: GH_TOKEN=$(ghcb <repo> [--refresh]) | ghcb next [repo] | ghcb claim <n> [repo] | ghcb release <n> [repo] | ghcb status <n> [repo] | ghcb card-meta <n> [repo]}"
+    shift || true
+    DIR="$(cd "$(dirname "$0")" && pwd)"
+    exec bash "$DIR/gh-app-token.sh" "$@"
+    ;;
+esac
