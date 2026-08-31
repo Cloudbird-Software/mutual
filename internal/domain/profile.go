@@ -1,10 +1,22 @@
 package domain
 
 import (
+	"fmt"
 	"regexp"
+	"sort"
 	"strconv"
 	"strings"
+	"unicode/utf8"
 )
+
+// MaxSectionLen 单个分节文本的长度上限（runes）。
+//
+// 画像分节是短自述（技能/需求/愿景/项目各一段）；无上限的分节会把
+// 超大文本逐字带进该成员参与的每一个 LLM 打分 prompt 与 embedding
+// 调用（实测 2MB 分节渲染成 2.96MB prompt）——面向运营方的财务
+// DoS / 资源滥用面（红队 RT3 #50）。上限取宽松值：容纳任何真实的
+// 长自述，同时把单成员的成本放大系数钉死在常数级。
+const MaxSectionLen = 8000
 
 // Profile 是用户/实体的原始自由文本画像（管线入口类型）。
 //
@@ -65,19 +77,43 @@ func userIDViolation(id UserID) string {
 	}
 }
 
-// NewProfile 构造 Profile 并校验最小不变量：ID 满足 ValidUserID 契约、
-// sections 非 nil。ID 原样渲染进 scoring 块头 "### Pair N: (u1, u2)"、
-// intro 的 Person 行与存储文件名——违反契约的 ID 返回零值 Profile
-// （调用方无法区分内容与零值时应在边界处用 ProfileFromMap /
-// ValidUserID 显式拒绝，见 pipeline 输入校验）。
+// NewProfile 构造 Profile 并校验最小不变量：ID 满足 ValidUserID 统一
+// 白名单契约（RT3 #43/#51/#53/#55/#58——ID 原样渲染进 scoring 块头
+// "### Pair N: (u1, u2)"、intro 的 Person 行与存储文件名）、sections
+// 非 nil、分节长度不超上限（RT3 #50 财务 DoS，见 MaxSectionLen）。
+// 违反任一契约返回零值 Profile（调用方无法区分内容与零值时应在边界处
+// 用 ProfileFromMap / ValidUserID / OverlongSection 显式拒绝，见 pipeline
+// 输入校验）。
 func NewProfile(id UserID, sections map[SectionName]string, lastUpdatedAt *string) Profile {
 	if !ValidUserID(id) {
+		return Profile{}
+	}
+	if _, over := OverlongSection(sections); over {
 		return Profile{}
 	}
 	if sections == nil {
 		sections = map[SectionName]string{}
 	}
 	return Profile{ID: id, Sections: sections, LastUpdatedAt: lastUpdatedAt}
+}
+
+// OverlongSection 返回首个超过 MaxSectionLen 的分节（按分节名排序，
+// 确定性）。无超长分节返回 false。
+func OverlongSection(sections map[SectionName]string) (SectionName, bool) {
+	if len(sections) == 0 {
+		return "", false
+	}
+	names := make([]string, 0, len(sections))
+	for name := range sections {
+		names = append(names, string(name))
+	}
+	sort.Strings(names)
+	for _, name := range names {
+		if utf8.RuneCountInString(sections[SectionName(name)]) > MaxSectionLen {
+			return SectionName(name), true
+		}
+	}
+	return "", false
 }
 
 // ToMap 与 Python Profile.to_dict 逐字段一致。
@@ -115,6 +151,14 @@ func ProfileFromMap(d map[string]any) (Profile, error) {
 			if s, ok := v.(string); ok {
 				sections[SectionName(k)] = s
 			}
+		}
+	}
+	// 分节长度上限（RT3 #50）：超大分节逐字进入该成员参与的每个
+	// LLM/embedding 调用（财务 DoS），注册咽喉 fail-loud 拒绝。
+	if name, over := OverlongSection(sections); over {
+		return Profile{}, &ContractError{
+			Field:  "sections",
+			Reason: fmt.Sprintf("section %q exceeds MaxSectionLen=%d runes (financial DoS surface)", name, MaxSectionLen),
 		}
 	}
 	var last *string

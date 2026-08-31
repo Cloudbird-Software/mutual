@@ -82,6 +82,14 @@
   DetectHardConstraint/violates 对 sections map 无序遍历，多约束声明时
   规则族逐次运行随机翻转、跨分节违反词拼接顺序随机，同一输入的资格
   裁决不可复现（违反确定性契约）。修复：分节名排序遍历/排序拼接。
+- domain：画像分节长度上限（红队 RT3 #50，中危·财务 DoS）——
+  Profile.Sections 无长度上限，单个超大分节（实测 2MB → 2.96MB
+  prompt）逐字进入该成员参与的每个 LLM/embedding 调用，放大平台
+  成本与延迟。修复：MaxSectionLen=8000 runes 单一真源
+  （domain.OverlongSection），注册层（ProfileFromMap）/构造层
+  （NewProfile）/pipeline 入口（RunFullMatch 直接构造 Profile 与
+  RunQueryMatch 的 query 文本）全线 fail-loud 拒绝，先于任何
+  LLM/embed 花费。
 - config：YAML 子集解析器空键（冒号行与冒号加值形态）静默产出空键 map 而非报错——fuzz 发现并修复。
 
 
