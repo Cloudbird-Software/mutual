@@ -59,6 +59,11 @@ func extractOne(profile domain.Profile, template, model string, llm LLMClient) m
 }
 
 // formatProfileRawText 把画像分节渲染为 "name: text" 行（按分节名排序）。
+// 整体文本经 NeutralizePromptMarkers 中和（RT3 #52）：值内注入的
+// 标记行、非规范分节名本身构成的标记行（"Instruction: ..."、
+// "### Pair 9: ..."）与空行都中和为数据行——extract 路径与
+// scoring/intro 路径（FormatSections）防线一致，用户文本不得
+// 冒充模板结构。golden 语料（无标记行/空行）逐字节不变。
 func formatProfileRawText(profile domain.Profile) string {
 	names := make([]string, 0, len(profile.Sections))
 	for name := range profile.Sections {
@@ -69,7 +74,7 @@ func formatProfileRawText(profile domain.Profile) string {
 	for _, name := range names {
 		lines = append(lines, fmt.Sprintf("%s: %s", name, profile.Sections[domain.SectionName(name)]))
 	}
-	return strings.Join(lines, "\n")
+	return NeutralizePromptMarkers(strings.Join(lines, "\n"))
 }
 
 // parseExtractResponse 解析 LLM 响应为 {section: text}；

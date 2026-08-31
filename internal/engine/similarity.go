@@ -145,9 +145,16 @@ func ComputeSimilarity(source, target *domain.EmbeddingsBundle, recipe RecipeCon
 		for _, t := range terms {
 			for i := 0; i < m; i++ {
 				for j := 0; j < n; j++ {
+					// 分母修正（RT3 #54）：无效 cell（零范数/缺失分节）
+					// 的权重仍计入分母（分子贡献为 0）。"缺失 = 从分母
+					// 豁免"在负权重分节上可被选择性填充利用——攻击者
+					// 只填交叉对齐的负权重分节、留空正权重分节，把
+					// 分母压到 Σw=0.60 而分子保留 0.80 交叉项，融合分
+					// 放大到 4/3。缺失分节按 cos=0 计入：留空不再 dodge
+					// 稀释。双侧全有效（golden 语料）时与逐位旧语义一致。
+					denom[i][j] += t.w
 					if t.ok[i][j] {
 						numer[i][j] += t.w * t.sim[i][j]
-						denom[i][j] += t.w
 					}
 				}
 			}
@@ -162,6 +169,15 @@ func ComputeSimilarity(source, target *domain.EmbeddingsBundle, recipe RecipeCon
 				// 量级 ~1.2，不触本防护。
 				if d >= denomFloor || d <= -denomFloor {
 					dir[i][j] = numer[i][j] / d
+				}
+				// 值域 clamp（RT3 #54）：加权平均 Σw·cos/Σw 只在
+				// 全正权重下有界于余弦值域；负权重分母（|Σw| < Σ|w|）
+				// 允许反相关惩罚项把融合分推出 [0,1]。golden 语料
+				// 融合分全落值域内，clamp 逐位不变。
+				if dir[i][j] > 1 {
+					dir[i][j] = 1
+				} else if dir[i][j] < 0 {
+					dir[i][j] = 0
 				}
 			}
 		}
