@@ -94,6 +94,15 @@ func RunFullMatch(in FullMatchInput, cfg *config.Config, deps Deps) (*domain.Mat
 		if err := deps.validateEmbedder(); err != nil {
 			return nil, err
 		}
+		// 输入 ID 契约（RT3 #58）：注册层（ProfileFromMap）已按统一白名单
+		// 拒绝夹缝 ID；直接构造 Profile 的调用方在此 fail-loud 拒绝，
+		// 不让单个恶意 ID 演化成 PutSections 处的全员批次失败。
+		for _, p := range in.Profiles {
+			if !domain.ValidUserID(p.ID) {
+				return nil, fmt.Errorf("拒绝 profile %q：ID 违反统一白名单契约（字母数字开头，仅 ._-，不含 \"..\"/\"__\"，长度 ≤ %d）",
+					string(p.ID), domain.MaxUserIDLen)
+			}
+		}
 		minRequired := cfg.MatchingMinProfiles()
 		if len(in.Profiles) < minRequired {
 			return nil, fmt.Errorf(
@@ -170,6 +179,11 @@ func RunQueryMatch(in QueryMatchInput, cfg *config.Config, deps Deps) (*domain.M
 	queryID := in.QueryID
 	if queryID == "" {
 		queryID = "query"
+	}
+	// 输入 ID 契约（RT3 #58）：与 RunFullMatch 同一 fail-loud 防线。
+	if !domain.ValidUserID(domain.UserID(queryID)) {
+		return nil, fmt.Errorf("拒绝 query id %q：ID 违反统一白名单契约（字母数字开头，仅 ._-，不含 \"..\"/\"__\"，长度 ≤ %d）",
+			queryID, domain.MaxUserIDLen)
 	}
 
 	// query 文本广播到全部 section 名，保证 query bundle 与 pool 的
