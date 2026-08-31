@@ -16,7 +16,9 @@
 package engine
 
 import (
+	"sort"
 	"strings"
+	"unicode/utf8"
 
 	"github.com/Cloudbird-Software/mutual/internal/domain"
 )
@@ -55,8 +57,16 @@ var constraintDeclarators = []string{"hard constraint", "硬约束", "hard requi
 
 // DetectHardConstraint 从画像分节检出显式硬约束（返回规则族与命中原文行）。
 // 无约束返回 ok=false。大小写不敏感；逐行扫描（约束声明是行级语句）。
+// 分节按名排序遍历（RT3 #57）：map 无序遍历使多约束声明时返回的
+// 规则族逐次运行随机翻转，违反确定性契约——裁决必须可审计、可复现。
 func DetectHardConstraint(sections map[domain.SectionName]string) (kind string, line string, ok bool) {
-	for _, text := range sections {
+	names := make([]string, 0, len(sections))
+	for name := range sections {
+		names = append(names, string(name))
+	}
+	sort.Strings(names)
+	for _, name := range names {
+		text := sections[domain.SectionName(name)]
 		for _, rawLine := range strings.Split(text, "\n") {
 			line = strings.TrimSpace(rawLine)
 			if line == "" {
@@ -87,6 +97,8 @@ func DetectHardConstraint(sections map[domain.SectionName]string) (kind string, 
 
 // Violates 判定 counterpart 画像是否可见地违反本约束。
 // 要求 counterpart 显式自述违反事实；无自述放行（交 LLM 层判断）。
+// haystack 按分节名排序拼接（RT3 #57）：拼接顺序决定跨分节边界的
+// 违反词（如 "fully"+"remote"）是否成型——随机顺序 = 随机裁决。
 func violates(kind string, counterpartSections map[domain.SectionName]string) (bool, string) {
 	var rule *constraintRule
 	for i := range constraintRules {
@@ -98,17 +110,87 @@ func violates(kind string, counterpartSections map[domain.SectionName]string) (b
 	if rule == nil {
 		return false, ""
 	}
-	var all []string
-	for _, text := range counterpartSections {
-		all = append(all, strings.ToLower(text))
+	names := make([]string, 0, len(counterpartSections))
+	for name := range counterpartSections {
+		names = append(names, string(name))
 	}
-	haystack := strings.Join(all, " ")
+	sort.Strings(names)
+	parts := make([]string, 0, len(names))
+	for _, name := range names {
+		parts = append(parts, strings.ToLower(counterpartSections[domain.SectionName(name)]))
+	}
+	haystack := strings.Join(parts, " ")
+	// 否定盲区（RT3 #49）：子串匹配对否定语境失明——合法成员写
+	// "杜绝纯远程交付"（即"不做远程"）会因子串 "纯远程" 被误判违规、
+	// 静默砍掉合法 pair（比漏放行更糟：fail-safe 方向是无证据不排除）。
+	// 命中点紧邻前置否定语（"杜绝"/"not "等）→ 视为否定式自述，
+	// 不算可见违反，继续找其他命中/交 LLM 层。
 	for _, v := range rule.violations {
-		if strings.Contains(haystack, v) {
-			return true, v
+		start := 0
+		for {
+			idx := strings.Index(haystack[start:], v)
+			if idx == -1 {
+				break
+			}
+			pos := start + idx
+			if !negatedBefore(haystack, pos) {
+				return true, v
+			}
+			start = pos + len(v)
 		}
 	}
 	return false, ""
+}
+
+// negationCuesZH 是中文前置否定语（子串匹配，同子句内）。
+var negationCuesZH = []string{
+	"杜绝", "不做", "不提供", "不设", "不采用", "没有", "从未",
+	"拒绝", "严禁", "禁止", "避免", "排除", "防止",
+}
+
+// negationTokensEN 是英文否定词（词元匹配，避免 "know" 误含 "no"）。
+var negationTokensEN = []string{
+	"no", "not", "never", "don't", "doesn't", "won't",
+	"avoid", "refuse", "without",
+}
+
+// negatedBefore 判定 haystack 中 pos 处命中词所在子句（以句读
+// 。！？；?!，,\n 分隔）的前半段是否含否定语——"杜绝纯远程交付"
+// / "we never deliver fully remote" 均为否定式自述，不算可见违反。
+// 误判方向是 fail-safe 的：把真违反误读为否定 → 放行交 LLM 层
+// （打分契约对硬约束违反者单向封顶 0.1），不会误杀合法 pair。
+func negatedBefore(haystack string, pos int) bool {
+	start := pos
+	for start > 0 {
+		r, size := utf8.DecodeLastRuneInString(haystack[:start])
+		if isClauseDelim(r) {
+			break
+		}
+		start -= size
+	}
+	clause := strings.ToLower(haystack[start:pos])
+	for _, cue := range negationCuesZH {
+		if strings.Contains(clause, cue) {
+			return true
+		}
+	}
+	for _, tok := range strings.Fields(clause) {
+		for _, cue := range negationTokensEN {
+			if tok == cue {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+// isClauseDelim 判定子句分隔符（中英句读与换行）。
+func isClauseDelim(r rune) bool {
+	switch r {
+	case '。', '！', '？', '；', '，', '.', '!', '?', ';', ',', '\n':
+		return true
+	}
+	return false
 }
 
 // EligibilityExclusions 双向构建不合格 pair 集：source 声明约束且

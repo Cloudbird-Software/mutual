@@ -118,15 +118,3 @@ func FormatSections(sections map[string]string) string {
 	}
 	return strings.Join(lines, "\n")
 }
-
-// FormatRawText 把 profile 原始分节渲染为 extract prompt 的 raw_text
-// （Python 侧按 sections dict 的插入序 join；Go 侧配置加载时保序，
-// 由调用方传入已保序键列表）。值内文本经 NeutralizePromptMarkers
-// 中和（parseExtractPrompt 的 begin/end 标记注入面）。
-func FormatRawText(sections []struct{ Name, Text string }) string {
-	lines := make([]string, 0, len(sections))
-	for _, s := range sections {
-		lines = append(lines, fmt.Sprintf("%s: %s", s.Name, NeutralizePromptMarkers(s.Text)))
-	}
-	return strings.Join(lines, "\n")
-}
