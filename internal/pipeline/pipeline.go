@@ -94,10 +94,15 @@ func RunFullMatch(in FullMatchInput, cfg *config.Config, deps Deps) (*domain.Mat
 		if err := deps.validateEmbedder(); err != nil {
 			return nil, err
 		}
-		// 分节长度契约（RT3 #50）：注册层（ProfileFromMap）已拒绝超长
-		// 分节；直接构造 Profile 的调用方在此 fail-loud，先于任何
-		// extract/LLM/embed 花费（财务 DoS 防护）。
+		// 输入契约（RT3 #50/#58）：注册层（ProfileFromMap）已按统一白名单
+		// 拒绝夹缝 ID 与超长分节；直接构造 Profile 的调用方在此 fail-loud
+		// 拒绝，先于任何 extract/LLM/embed 花费（财务 DoS 防护 + 不让单个
+		// 恶意 ID 演化成 PutSections 处的全员批次失败）。
 		for _, p := range in.Profiles {
+			if !domain.ValidUserID(p.ID) {
+				return nil, fmt.Errorf("拒绝 profile %q：ID 违反统一白名单契约（字母数字开头，仅 ._-，不含 \"..\"/\"__\"，长度 ≤ %d）",
+					string(p.ID), domain.MaxUserIDLen)
+			}
 			if name, over := domain.OverlongSection(p.Sections); over {
 				return nil, fmt.Errorf("拒绝 profile %q：分节 %q 超长（> %d runes，财务 DoS 防护）",
 					string(p.ID), string(name), domain.MaxSectionLen)
@@ -180,8 +185,13 @@ func RunQueryMatch(in QueryMatchInput, cfg *config.Config, deps Deps) (*domain.M
 	if queryID == "" {
 		queryID = "query"
 	}
-	// query 文本长度契约（RT3 #50）：query 会广播到全部 section 名并
-	// 全文进入 extract/embedding——超长 query 是同一财务 DoS 面。
+	// 输入契约（RT3 #50/#58）：与 RunFullMatch 同一 fail-loud 防线——
+	// query 文本会广播到全部 section 名并全文进入 extract/embedding
+	// （超长 query 是同一财务 DoS 面）；query ID 走统一白名单。
+	if !domain.ValidUserID(domain.UserID(queryID)) {
+		return nil, fmt.Errorf("拒绝 query id %q：ID 违反统一白名单契约（字母数字开头，仅 ._-，不含 \"..\"/\"__\"，长度 ≤ %d）",
+			queryID, domain.MaxUserIDLen)
+	}
 	if n := len([]rune(in.QueryText)); n > domain.MaxSectionLen {
 		return nil, fmt.Errorf("拒绝 query text：长度 %d 超过上限 %d runes（财务 DoS 防护）",
 			n, domain.MaxSectionLen)

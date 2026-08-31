@@ -2,7 +2,10 @@ package domain
 
 import (
 	"fmt"
+	"regexp"
 	"sort"
+	"strconv"
+	"strings"
 	"unicode/utf8"
 )
 
@@ -25,16 +28,65 @@ type Profile struct {
 	LastUpdatedAt *string // 可选，ISO-8601 时间戳
 }
 
-// NewProfile 构造 Profile 并校验最小不变量：ID 非空、sections 非 nil、
-// ID 不含会破坏下游 prompt 结构的字符（RT-2026-08 #34：ID 原样渲染进
-// scoring 块头 "### Pair N: (u1, u2)" 与 intro 的 Person 行——换行/逗号/
-// 括号可注入受信指令槽位或伪造批量块头，故在构造咽喉处拒绝）、
-// 分节长度不超上限（RT3 #50 财务 DoS，见 MaxSectionLen）。
+// userIDRe 是 UserID 的平台统一白名单（与 store.SafeFilename 同一规则，
+// RT3 #43/#51/#53/#58：注册层与存储/解析层的校验分裂会被夹缝字符
+// 利用——空格 ID 使打分块头不可解析（#51），冒号/URL 等内容型 ID 借
+// 平台话术投递钓鱼载体（#53），夹缝 ID 使带 Store 的全员批次 DoS（#58））。
+var userIDRe = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9._-]*$`)
+
+// MaxUserIDLen 是 UserID 长度上限（#53：ID 会进入 prompt、话术与报告，
+// 无上限即无成本的内容投递面）。
+const MaxUserIDLen = 64
+
+// ValidUserID 判定 ID 是否满足平台统一 ID 契约：
+//   - 匹配 ^[A-Za-z0-9][A-Za-z0-9._-]*$（字母数字开头，仅 ._-）；
+//   - 长度 1..MaxUserIDLen；
+//   - 不得含 ".."（路径穿越守卫，与 store.SafeFilename 一致）；
+//   - 不得含 "__"（StablePairID 以 "__" 连接排序后的两个 ID，ID 内含
+//     "__" 会使不同用户对产生相同 PairID——去重静默蒸发与 novelty 连带
+//     封禁，RT3 #55）。
+//
+// 该契约同时消除 ID 作为内容/结构注入载体的全部已知字符面
+// （控制字符/空白/冒号/井号/括号/反引号/管道符/尖括号/RTL/零宽——
+// RT2 #43、RT3 #51/#53）。
+func ValidUserID(id UserID) bool {
+	s := string(id)
+	if len(s) == 0 || len(s) > MaxUserIDLen {
+		return false
+	}
+	if !userIDRe.MatchString(s) {
+		return false
+	}
+	return !strings.Contains(s, "..") && !strings.Contains(s, "__")
+}
+
+// userIDViolation 返回 ID 违反契约的人类可读原因（ContractError 用）。
+func userIDViolation(id UserID) string {
+	switch {
+	case len(id) == 0:
+		return "must be a non-empty string"
+	case len(id) > MaxUserIDLen:
+		return "exceeds max length " + strconv.Itoa(MaxUserIDLen)
+	case !userIDRe.MatchString(string(id)):
+		return "must match ^[A-Za-z0-9][A-Za-z0-9._-]*$ " +
+			"(unified with store filename guard; no whitespace/colon/punct/Unicode)"
+	case strings.Contains(string(id), ".."):
+		return "must not contain \"..\" (path traversal guard)"
+	default:
+		return "must not contain \"__\" (pair-id separator collision guard)"
+	}
+}
+
+// NewProfile 构造 Profile 并校验最小不变量：ID 满足 ValidUserID 统一
+// 白名单契约（RT3 #43/#51/#53/#55/#58——ID 原样渲染进 scoring 块头
+// "### Pair N: (u1, u2)"、intro 的 Person 行与存储文件名）、sections
+// 非 nil、分节长度不超上限（RT3 #50 财务 DoS，见 MaxSectionLen）。
+// 违反任一契约返回零值 Profile（调用方无法区分内容与零值时应在边界处
+// 用 ProfileFromMap / ValidUserID / OverlongSection 显式拒绝，见 pipeline
+// 输入校验）。
 func NewProfile(id UserID, sections map[SectionName]string, lastUpdatedAt *string) Profile {
-	for _, r := range id {
-		if r < 0x20 || r == ',' || r == '(' || r == ')' {
-			return Profile{}
-		}
+	if !ValidUserID(id) {
+		return Profile{}
 	}
 	if _, over := OverlongSection(sections); over {
 		return Profile{}
@@ -88,16 +140,10 @@ func ProfileFromMap(d map[string]any) (Profile, error) {
 	if !ok || id == "" {
 		return Profile{}, &ContractError{Field: "id", Reason: "must be a non-empty string"}
 	}
-	// ID 结构校验（RT-2026-08 #34）：ID 原样渲染进 scoring 块头与 intro
-	// Person 行，控制字符/逗号/括号可注入受信指令槽位或伪造批量块头。
-	for _, r := range id {
-		if r < 0x20 || r == ',' || r == '(' || r == ')' {
-			return Profile{}, &ContractError{
-				Field: "id",
-				Reason: "must not contain control characters, comma, or parentheses " +
-					"(prompt structure injection surface)",
-			}
-		}
+	// ID 结构校验：统一白名单契约（RT-2026-08 #34 → RT3 #43/#51/#53/#55/#58
+	// 升级为 ValidUserID 单一真源，见其文档）。
+	if !ValidUserID(UserID(id)) {
+		return Profile{}, &ContractError{Field: "id", Reason: userIDViolation(UserID(id))}
 	}
 	sections := map[SectionName]string{}
 	if raw, ok := d["sections"].(map[string]any); ok {

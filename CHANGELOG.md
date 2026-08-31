@@ -52,6 +52,13 @@
   Scorecard Fuzzing=0 → 自愈；mutual #5）。
 - 初始模板工程（CI gate / hygiene / dependabot / automerge 全套护栏）。
 ### Fixed
+- domain：UserID 契约统一为白名单 `^[A-Za-z0-9][A-Za-z0-9._-]*$` + 长度 ≤64 +
+  禁 `..`/`__`（domain.ValidUserID 单一真源；红队 RT2 #43 / RT3 #51/#53/#55/#58）。
+  注册层与存储/解析层校验分裂被夹缝字符利用：空格 ID 使打分块头不可反解析
+  （整批 unscored 绕过 verifiability gate）、冒号/URL 等内容型 ID 借平台话术
+  投递钓鱼载体、单个夹缝 ID 使带 Store 的全员批次 DoS、`__` ID 构造 PairID
+  碰撞（诚实对静默蒸发/连带封禁）。pipeline 入口（RunFullMatch/RunQueryMatch）
+  对直接构造的 Profile fail-loud 拒绝，先于任何 LLM/embed 花费。
 - domain：画像分节长度上限（红队 RT3 #50，中危·财务 DoS）——
   Profile.Sections 无长度上限，单个超大分节（实测 2MB → 2.96MB
   prompt）逐字进入该成员参与的每个 LLM/embedding 调用，放大平台
