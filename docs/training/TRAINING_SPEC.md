@@ -74,15 +74,25 @@ needs: 急需金融科技方向的lag free settlement能力合作伙伴
 - 中文样本：zh_assoc 场景全部（30×30 对）。
 - 规模目标：主库 + 扩展 + zh_assoc 约 1500-3000 对；`--synthesize` 扩展至 ≥1 万对。
 - **划分**：按场景隔离，`train/val/test` = 8:1:1（test 保留独立；holdout 永远不碰）。
+- ⚠️ **双向 label 近似说明**：当前合成数据只有对级 label（黄金=1/非黄金=0），
+  无方向级 label（`a_to_b` 与 `b_to_a` 独立分数）。因此训练时两个方向样本取同一 label，
+  这是**当前数据条件下的近似**——模型通过换向输入学到"输入顺序承载方向"。
+  真正的方向级非对称 label 需后续补充（真实业务反馈 或 v3 契约离线标注连续分）。
+  若未来获得方向级 label，可将 `train_reranker.py` 的 loss 从 BCE 换成回归 MSE
+  并用方向分训练（见 §1.4）。
 
 ### 1.3 模型基座与架构
 
 - **首选基座：`BAAI/bge-reranker-v2-m3`**（~560M，XLM-RoBERTa 系，跨语言 + 中文强，MIT 可商用）。
   - FlagEmbedding `llm_reranker` 训练管线支持；或 sentence-transformers `CrossEncoder`。
 - **对比候选：`Qwen/Qwen3-Reranker-0.6B`**（Apache 2.0，中文指令理解更强）。
-- **双向输出实现（二选一，推荐 B）**：
-  - A) 单模型 + 方向前缀：输入 `[方向指令] A画像 [SEP] B画像`，用方向前缀区分 `a_to_b` / `b_to_a`（一个模型输出单分，训练时同一对生成两个方向样本）。
-  - B) 双输出头：`CrossEncoder` 定制回归头输出两个分数（简单、直观）。
+- **双向输出实现（脚本实际实现，train_reranker.py）**：
+  - **换向方案（= 方案 A 方向前缀的具体化）**：同一画像对生成两个方向样本——
+    `a_to_b` 输入 `(a, b)`、`b_to_a` 输入 `(b, a)`，label 均取该对得分。
+    方向语义由输入顺序承载（CrossEncoder 对输入顺序敏感），无需显式方向指令。
+    这是脚本默认实现。
+  - 备选（未在脚本中实现，如需可扩展）：双输出头——`CrossEncoder` 定制回归头
+    一次输出两个分数（`a_to_b`/`b_to_a`）。
 - **基线必须记录**：训练前先跑 `python evaluate_reranker.py --model BAAI/bge-reranker-v2-m3 --data ./output/data --out ./output/data/baseline.json`（zero-shot，注意 `--data` 为必填）作为对照，训练后对比提升。
 
 ### 1.4 训练参数（起点，训练者按数据量调整并记录）
@@ -176,16 +186,26 @@ max_seq_len: 512（四节拼接）
 
 在 `holdout/scenarios/HT-*.json`（12 陷阱，禁入训练）+ `bench` 测试集上：
 
-| 指标 | 门禁 |
-|---|---|
-| 黄金对 HR@3 | ≥ 0.60 |
-| NDCG@5 | ≥ 0.40 |
-| total_envy | ≤ 2 |
-| 12 陷阱断言 | 全绿（holdout assertions 逐一满足） |
-| 与 v3 LLM 打分一致性 | Spearman ≥ 0.6（在独立 624 对盲标注或本批随机样本上，用 LLM 离线标注比对；脚本当前提供分数排序对比，标注比对需 PM 另配 LLM 标注步骤） |
-| 注入/堆砌对抗 | 陷阱集内注入画像不得获高分（对齐 #45/#48 预期） |
+| 指标 | 门禁 | 验证层 |
+|---|---|---|
+| 黄金对 HR@3 | ≥ 0.60 | 打分器（evaluate_reranker.py） |
+| NDCG@5 | ≥ 0.40 | 打分器（evaluate_reranker.py） |
+| AUC（黄金 vs 非黄金分离） | ≥ 0.75 | 打分器（evaluate_reranker.py） |
+| holdout `level_le` / `level_ge` 断言 | 全绿（分数→level 校准锚点映射后逐条判定） | 打分器（evaluate_reranker.py） |
+| holdout 其余断言（`eligible`/`reason_contains`/`not_matched`/`matched`/`confidence_le`/`degree_le`） | 接入引擎后由全链路 holdout gate 验证（打分器侧标记 pipeline-deferred，**不得谎称通过**） | 全链路 pipeline gate |
+| `total_envy` | ≤ 2 | 匹配求解层（引擎 `match` 后计算，非打分器指标；打分器侧不产出） |
+| 与 v3 LLM 打分一致性 | Spearman ≥ 0.6（在独立 624 对盲标注或本批随机样本上，用 LLM 离线标注比对；脚本当前提供分数排序对比，标注比对需 PM 另配 LLM 标注步骤） | 打分器 + 离线标注 |
+| 注入/堆砌对抗 | 陷阱集内注入画像不得获高分（对齐 #45/#48 预期） | 打分器（level_le 断言覆盖） |
 
-评测脚本：`scripts/training/evaluate_reranker.py`（输出 JSON 报告 + 逐陷阱明细）。
+> **职责边界（重要）**：holdout 12 陷阱的 8 种断言中，只有 `level_le` / `level_ge`
+> 属于打分器职责（打分→level 判定）。其余 6 种（`eligible`、`reason_contains`、
+> `not_matched`、`matched`、`confidence_le`、`degree_le`）依赖 extract→eligibility→
+> match 求解的完整链路，**打分器单独无法验证**。`evaluate_reranker.py` 对它们
+> 如实标记 pipeline-deferred 并计数，不在打分器侧假装通过；接入引擎后由
+> 引擎侧 holdout gate（`internal/bench` 全链路评测）验收。
+
+评测脚本：`scripts/training/evaluate_reranker.py`（输出 JSON 报告 + 逐陷阱明细 +
+打分器断言通过数 + pipeline-deferred 计数）。
 
 ### 6.2 P1 Embedding
 
