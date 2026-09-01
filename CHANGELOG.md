@@ -5,6 +5,13 @@
 ## [Unreleased]
 
 ### Added
+- training：高价值小模型训练工具包（scripts/training/ + docs/training/）——
+  P0 Score 双向打分器微调（prepare_data.py 数据准备 / train_reranker.py 训练 /
+  evaluate_reranker.py 门禁评测 / serve_reranker.py 本地推理服务）、P1 Embedding
+  替换实测（bench_embedding.py，bge-m3 等开源候选）、P2 Extract 四节微调
+  （train_extract.py 导出 LLaMA-Factory 数据集）。规格 docs/training/TRAINING_SPEC.md、
+  开源借鉴 docs/training/OPENSOURCE_REFERENCES.md、接入引擎 docs/training/MODEL_SERVING.md。
+  仅合成+公开数据训练，不动引擎 Go 代码；训练产物 scripts/training/output/ 入 .gitignore。
 - engine：硬约束资格判定（EligibilityExclusions）——显式声明的硬约束
   （"hard constraint/硬约束" 标记门控，地理实体/本地驻场两族）遇
   counterpart 可见违反自述 → 该对前置于候选选择排除（不进 LLM 精排、

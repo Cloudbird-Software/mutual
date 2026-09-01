@@ -98,7 +98,9 @@ mutual/
 │   ├── ARCHITECTURE.md          # Go+BAML 架构总图（分层/数据流/桥接）
 │   ├── AI-GUIDE.md              # AI 协作指南（改哪/怎么改/铁律）
 │   ├── engineering-plan.md      # 工程方案（施工蓝图）
-│   └── ci-gates.md              # CI 门禁定义
+│   ├── ci-gates.md              # CI 门禁定义
+│   └── training/                # 小模型训练：规格/开源借鉴/接入引擎
+├── scripts/training/            # 训练工具（合成数据→微调→评测→推理服务）
 └── .github/workflows/ci.yml     # CI pipeline（双栈：check + go）
 ```
 

@@ -29,3 +29,5 @@ data/*
 # node_modules 仅本地再生成 BAML 客户端时需要；CI 用提交的 baml_client/
 node_modules/
 .mcp/
+# Training artifacts (scripts/training/output/, 不入库避免大文件污染)
+scripts/training/output/
