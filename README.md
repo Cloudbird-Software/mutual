@@ -104,6 +104,11 @@ mutual/
 └── .github/workflows/ci.yml     # CI pipeline（双栈：check + go）
 ```
 
+> 🎯 **训练小模型（PM agent 显卡作业）**：训练规格、数据、基座、门禁见
+> `docs/training/TRAINING_SPEC.md`；完整可执行命令链见 `scripts/training/README.md`；
+> 训练完接入 Go 引擎见 `docs/training/MODEL_SERVING.md`；开源可借鉴项目见
+> `docs/training/OPENSOURCE_REFERENCES.md`。仅用合成+公开数据，不依赖真实业务反馈。
+
 ---
 
 ## 4. 四件套（唯一真相）

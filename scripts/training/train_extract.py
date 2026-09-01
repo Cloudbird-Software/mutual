@@ -7,8 +7,8 @@ mutual P2 Extract 四节结构化器训练脚本（可选，LoRA 微调 Qwen2.5�
 消除 extract 提示词注入面（#52/#46），并降低线性成本。
 
 数据：用 bench 四节画像拼回"自由文本画像"作输入，四节作监督标签。
-生成：prepare_data.py --synthesize --task extract（当前未实现该 flag，
-     此脚本内置一个简单的自由文本拼装函数作为 fallback）。
+生成：本脚本内置 make_free_text 自由文本拼装函数，直接导出 LLaMA-Factory
+     数据集（extract_data.jsonl），无需依赖 prepare_data.py 的额外参数。
 
 用法：
   python train_extract.py --data ./output/data --out-dir ./output/extract-model \
