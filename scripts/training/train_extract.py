@@ -33,9 +33,11 @@ def make_free_text(sections) -> str:
     return " ".join(parts)
 
 
-def export_llamafactory_data(data_dir, out_path):
-    """导出 LLaMA-Factory 的 dataset 格式：instruction/input/output。
-    output 为四节 JSON 字符串。
+def export_llamafactory_data(data_dir, out_dir):
+    """导出 LLaMA-Factory 数据集：extract_data.jsonl + dataset_info.json。
+    LLaMA-Factory 的 --dataset_dir 目录内必须有 dataset_info.json 注册数据集，
+    否则 --dataset extract_data 会报"未注册数据集"错误。
+    instruction/input/output 三段式；output 为四节 JSON 字符串。
     """
     rows = []
     for fname in ("train.jsonl", "val.jsonl"):
@@ -55,10 +57,22 @@ def export_llamafactory_data(data_dir, out_path):
                     "input": free_text,
                     "output": output,
                 })
+    out_path = Path(out_dir) / "extract_data.jsonl"
     with open(out_path, "w", encoding="utf-8") as f:
         for r in rows:
             f.write(json.dumps(r, ensure_ascii=False) + "\n")
+    # dataset_info.json：注册 extract_data，LLaMA-Factory 必需
+    info_path = Path(out_dir) / "dataset_info.json"
+    info = {
+        "extract_data": {
+            "file_name": "extract_data.jsonl",
+            "columns": {"prompt": "instruction", "query": "input", "response": "output"},
+        }
+    }
+    with open(info_path, "w", encoding="utf-8") as f:
+        json.dump(info, f, ensure_ascii=False, indent=2)
     print(f"[train_extract] 已导出 {len(rows)} 条到 {out_path}")
+    print(f"[train_extract] dataset_info.json 已生成（注册 extract_data 数据集）")
 
 
 def parse_key_value(text):
@@ -81,8 +95,8 @@ def main():
     Path(args.out_dir).mkdir(parents=True, exist_ok=True)
     data_path = Path(args.data)
 
-    # 1) 导出 LLaMA-Factory 数据集
-    export_llamafactory_data(data_path, Path(args.out_dir) / "extract_data.jsonl")
+    # 1) 导出 LLaMA-Factory 数据集（extract_data.jsonl + dataset_info.json）
+    export_llamafactory_data(data_path, Path(args.out_dir))
 
     # 2) 打印训练命令（LLaMA-Factory CLI 由 PM 在显卡环境执行）
     print()

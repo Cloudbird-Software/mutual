@@ -6,12 +6,15 @@ mutual P0 Score 双向打分器训练脚本
 基于 sentence-transformers CrossEncoder 微调，输出双向互补打分能力。
 
 设计（对齐 docs/training/TRAINING_SPEC.md §1）：
-  - 方向前缀方案（方案 A）：同一画像对生成两个方向样本——
-    a_to_b: "A needs B provides: <A四节> [SEP] <B四节>" → label = a_to_b
-    b_to_a: "A needs B provides: <B四节> [SEP] <A四节>" → label = b_to_a
-    （方向语义 = 对方 skills 满足本方 needs 的互补匹配，非对称相似度）
+  - 换向方案（方案 A）：同一画像对生成两个方向样本——
+    a_to_b: 输入 (a, b) → label
+    b_to_a: 输入 (b, a) → label
+    （方向语义 = 对方 skills 满足本方 needs 的互补匹配，非对称相似度；
+      由 CrossEncoder 换向输入实现，与方向前缀方案等价）
   - 训练数据来自 prepare_data.py 输出（train.jsonl/val.jsonl）
-  - 回归 MSE loss；基座默认 bge-reranker-v2-m3（可换 Qwen3-Reranker-0.6B）
+  - loss = BinaryCrossEntropyLoss（黄金对=1/非黄金=0 二分类；若改用回归连续分
+    请换 MSE 系 loss）；基座默认 bge-reranker-v2-m3（可换 Qwen3-Reranker-0.6B）
+  - 注意：需 sentence-transformers >= 4.0（BinaryCrossEntropyLoss 在 v4 引入）
 
 用法：
   python train_reranker.py --base-model BAAI/bge-reranker-v2-m3 \
@@ -19,13 +22,12 @@ mutual P0 Score 双向打分器训练脚本
 """
 import argparse
 import json
-import os
 import sys
 from pathlib import Path
 
 import torch
 from torch.utils.data import DataLoader, Dataset
-from sentence_transformers import CrossEncoder
+from sentence_transformers import CrossEncoder, InputExample
 from sentence_transformers.cross_encoder.losses import BinaryCrossEntropyLoss
 
 
@@ -34,6 +36,10 @@ class PairScoreDataset(Dataset):
     每对 (a,b) 产生两个方向样本：(a→b) 与 (b→a)，label 均为该对得分。
     双向打分 = 换向输入（a_to_b 用 (a,b)，b_to_a 用 (b,a)），
     等价于方向前缀方案（TRAINING_SPEC §1.3 方案 A）。
+    注意：必须产出 InputExample（texts=[s1,s2], label=...），
+    这是 sentence-transformers CrossEncoder.fit 期望的 dataloader 格式
+    （v4 官方 STS 示例仍用 InputExample + fit；裸元组 (a,b,lab) 会被
+    default_collate 拆成 (list_a, list_b, tensor_label)，fit 无法解析）。
     """
 
     def __init__(self, jsonl_path):
@@ -45,15 +51,14 @@ class PairScoreDataset(Dataset):
                     continue
                 a, b, lab = row["a"], row["b"], float(row["label"])
                 # 两个方向样本（互补匹配非对称，换向输入即换向打分）
-                self.examples.append((a, b, lab))
-                self.examples.append((b, a, lab))
+                self.examples.append(InputExample(texts=[a, b], label=lab))
+                self.examples.append(InputExample(texts=[b, a], label=lab))
 
     def __len__(self):
         return len(self.examples)
 
     def __getitem__(self, i):
-        a, b, lab = self.examples[i]
-        return a, b, lab
+        return self.examples[i]
 
 
 class RerankerTrainer:
@@ -71,24 +76,22 @@ class RerankerTrainer:
         print(f"[train_reranker] train={len(train_ds)} 条（双向样本）, val={len(val_ds)} 条")
 
         train_dl = DataLoader(train_ds, batch_size=batch_size, shuffle=True)
-        val_dl = DataLoader(val_ds, batch_size=batch_size)
 
         # CrossEncoder.fit 的语义：label ∈ {0,1} 用 BinaryCrossEntropyLoss。
-        # 注意：当前 label 来自黄金对(=1)/非黄金对(=0)，如需回归连续分，
-        # 请改用 sentence_transformers.cross_encoder.losses 的回归 loss。
+        # 注意：loss 参数名必须是 loss_fct（CrossEncoder.fit 签名）。
+        # 当前 label 来自黄金对(=1)/非黄金对(=0)；如需回归连续分，请换 MSE 系回归 loss。
+        # output_path + save_best_model=True 会在训练后把最佳模型保存到 out_dir
+        # （无 evaluator 时保存最后一轮），随后无需再 save_pretrained。
         self.model.fit(
             train_dataloader=train_dl,
-            loss=BinaryCrossEntropyLoss(model=self.model),
+            loss_fct=BinaryCrossEntropyLoss(model=self.model),
             epochs=epochs,
             warmup_steps=int(len(train_dl) * epochs * warmup_ratio),
             optimizer_params={"lr": lr},
             output_path=str(out_dir),
+            save_best_model=True,
         )
-        print(f"[train_reranker] 训练完成 → {out_dir}")
-
-    def save(self, out_dir):
-        self.model.save_pretrained(str(out_dir))
-        print(f"[train_reranker] 模型已保存 → {out_dir}")
+        print(f"[train_reranker] 训练完成，模型已保存 → {out_dir}")
 
 
 def main():
@@ -117,7 +120,6 @@ def main():
         batch_size=args.batch_size,
         lr=args.lr,
     )
-    trainer.save(args.out_dir)
     print(f"[train_reranker] 完成。下一步：evaluate_reranker.py --model {args.out_dir}")
 
 

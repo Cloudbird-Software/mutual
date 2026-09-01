@@ -63,9 +63,15 @@ python train_extract.py --data ./output/data --out-dir ./output/extract-model
 
 | 产物 | 门禁 |
 |---|---|
-| P0 Score | HR@3≥0.6 / NDCG@5≥0.4 / envy≤2 / 12 陷阱全绿 / 与 LLM 一致性 Spearman≥0.6 |
+| P0 Score 打分器层 | HR@3≥0.6 / NDCG@5≥0.4 / AUC≥0.75 / holdout `level_le`·`level_ge` 全绿（evaluate_reranker.py） |
+| P0 Score 全链路层（接入引擎后） | holdout 其余断言（eligible/matched/not_matched/degree/confidence/reason）由引擎 gate 验证；envy≤2 由 match 求解层计算 |
+| P0 Score | 与 v3 LLM 一致性 Spearman≥0.6（打分器 + 离线标注） |
 | P1 Embedding | 召回 HR@3 ≥ 现状 voyage 或 bge-m3 ≥ voyage |
 | P2 Extract | 四节抽取准确率 ≥0.85（中文 ≥0.80）、注入样本不误提取 |
+
+> 注：holdout 12 陷阱 8 种断言中，打分器只验证 `level_le`/`level_ge`；其余
+> pipeline 层断言在打分器评测中标记 pipeline-deferred（不谎称通过），
+> 接入引擎后由全链路 holdout gate 验收。详见 TRAINING_SPEC §6.1。
 
 ## 目录约定
 

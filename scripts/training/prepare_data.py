@@ -12,7 +12,7 @@ mutual 训练数据准备器
   baseline.json                          训练前 zero-shot 基线占位（由 evaluate 写）
 
 每行样本格式：
-  {"pair_id": "m0__p0", "scenario": "classic",
+  {"pair_id": "classic__m0__p0", "scenario": "classic",
    "a_id": "m0", "b_id": "p0", "label": 1.0,
    "a": "skills: ...\nvision: ...\n...", "b": "..."}
   label = 1.0 黄金对 / 0.0 非黄金对（score 训练用二分类或回归都可）
@@ -24,7 +24,6 @@ mutual 训练数据准备器
 """
 import argparse
 import json
-import os
 import random
 import sys
 from pathlib import Path
@@ -62,20 +61,32 @@ def scenario_pairs(scenario: dict, scenario_name: str):
     pool = scenario["pool"]
     gt = scenario.get("ground_truth", {})
     pairs = []
+
+    def _gt_ids(m_id):
+        """ground_truth 值可能是单个 id 字符串或 id 列表，统一规范化为 list[str]。"""
+        v = gt.get(m_id, [])
+        if isinstance(v, str):
+            return [v]
+        if isinstance(v, list):
+            return [x for x in v if isinstance(x, str)]
+        return []
+
     # 黄金对
-    for m_id, p_id in gt.items():
-        pairs.append({
-            "pair_id": f"{m_id}__{p_id}", "scenario": scenario_name,
-            "a_id": m_id, "b_id": p_id, "label": 1.0,
-            "a": format_sections(members[m_id]), "b": format_sections(pool[p_id]),
-        })
+    for m_id in gt:
+        for p_id in _gt_ids(m_id):
+            pairs.append({
+                "pair_id": f"{scenario_name}__{m_id}__{p_id}", "scenario": scenario_name,
+                "a_id": m_id, "b_id": p_id, "label": 1.0,
+                "a": format_sections(members[m_id]), "b": format_sections(pool[p_id]),
+            })
     # 非黄金对（负样本）：每个 member 取有限个干扰 pool
     for m_id in members:
-        neg_pool = [p for p in pool if p not in gt.get(m_id, [])]
+        gold_set = set(_gt_ids(m_id))
+        neg_pool = [p for p in pool if p not in gold_set]
         random.shuffle(neg_pool)
         for p_id in neg_pool[:3]:  # 每个 member 最多 3 个干扰对，控制规模
             pairs.append({
-                "pair_id": f"{m_id}__{p_id}", "scenario": scenario_name,
+                "pair_id": f"{scenario_name}__{m_id}__{p_id}", "scenario": scenario_name,
                 "a_id": m_id, "b_id": p_id, "label": 0.0,
                 "a": format_sections(members[m_id]), "b": format_sections(pool[p_id]),
             })
@@ -114,7 +125,7 @@ def synthesize_pairs(n: int, seed: int = 42) -> list:
         m_id = f"syn_m{i}"
         p_id = f"syn_p{i}"
         pairs.append({
-            "pair_id": f"{m_id}__{p_id}", "scenario": "synthetic",
+            "pair_id": f"synthetic__{m_id}__{p_id}", "scenario": "synthetic",
             "a_id": m_id, "b_id": p_id, "label": 1.0,
             "a": format_sections({
                 "skills": f"{w}领域{v}能力，团队完备", "vision": f"{w}长期主义",
@@ -129,7 +140,7 @@ def synthesize_pairs(n: int, seed: int = 42) -> list:
             w2 = rng.choice(base_words)
         v2 = rng.choice(variants)
         pairs.append({
-            "pair_id": f"{m_id}__syn_d{i}", "scenario": "synthetic",
+            "pair_id": f"synthetic__{m_id}__syn_d{i}", "scenario": "synthetic",
             "a_id": m_id, "b_id": f"syn_d{i}", "label": 0.0,
             "a": format_sections({
                 "skills": f"{w}领域{v}能力", "vision": f"{w}长期主义",

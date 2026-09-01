@@ -28,7 +28,11 @@ def format_sections(profile) -> str:
 
 
 def load_profiles(data_dir):
-    """从 train/val/test 提取 (id, text) 与黄金对。"""
+    """从 train/val/test 提取 (唯一画像 key, text) 与黄金对。
+    注意：不同场景的 member id 可能重复（如 classic 与 constraints 都有 m1，
+    decoy/messy/paraphrase 都有 m01），必须用 (scenario, id) 复合 key，
+    否则同 id 画像会被后一条覆盖，黄金对召回被污染。
+    """
     profiles = {}
     gold_pairs = []
     for fname in ("train.jsonl", "val.jsonl", "test.jsonl"):
@@ -38,10 +42,13 @@ def load_profiles(data_dir):
         with open(p, encoding="utf-8") as f:
             for line in f:
                 r = json.loads(line)
-                profiles[r["a_id"]] = r["a"]
-                profiles[r["b_id"]] = r["b"]
+                scn = r.get("scenario", "?")
+                a_key = f"{scn}:{r['a_id']}"
+                b_key = f"{scn}:{r['b_id']}"
+                profiles[a_key] = r["a"]
+                profiles[b_key] = r["b"]
                 if r["label"] >= 0.5:
-                    gold_pairs.append((r["a_id"], r["b_id"]))
+                    gold_pairs.append((a_key, b_key))
     return profiles, gold_pairs
 
 
