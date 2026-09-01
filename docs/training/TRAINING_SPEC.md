@@ -83,18 +83,25 @@ needs: 急需金融科技方向的lag free settlement能力合作伙伴
 - **双向输出实现（二选一，推荐 B）**：
   - A) 单模型 + 方向前缀：输入 `[方向指令] A画像 [SEP] B画像`，用方向前缀区分 `a_to_b` / `b_to_a`（一个模型输出单分，训练时同一对生成两个方向样本）。
   - B) 双输出头：`CrossEncoder` 定制回归头输出两个分数（简单、直观）。
-- **基线必须记录**：训练前先跑 `scripts/training/evaluate_reranker.py --model BAAI/bge-reranker-v2-m3`（zero-shot）作为对照，训练后对比提升。
+- **基线必须记录**：训练前先跑 `python evaluate_reranker.py --model BAAI/bge-reranker-v2-m3 --data ./output/data --out ./output/data/baseline.json`（zero-shot，注意 `--data` 为必填）作为对照，训练后对比提升。
 
 ### 1.4 训练参数（起点，训练者按数据量调整并记录）
 
 ```
-框架：sentence-transformers CrossEncoder（或 FlagEmbedding llm_reranker）
-loss：回归 MSE（方向前缀方案）或 BCE（黄金对=1/非黄金=0）
-epochs: 3-5
-batch_size: 16-32（显存不足降梯度累积）
-lr: 2e-5（bge-reranker-v2-m3 全量） / 1e-4（LoRA）
+框架：sentence-transformers CrossEncoder（脚本实际实现，train_reranker.py）
+loss：BinaryCrossEntropyLoss（label=黄金对1/非黄金0；如改回归连续分请换 MSE 系 loss）
+epochs: 3-5（脚本默认 4）
+batch_size: 16-32（显存不足降梯度累积；脚本默认 16）
+lr: 2e-5（脚本默认）
 max_seq_len: 512（四节拼接）
-评估器：RerankEvaluator（每 epoch 跑 val）
+评估器：训练后由 evaluate_reranker.py 跑门禁（脚本内未挂每 epoch evaluator）
+```
+
+> ⚠️ **训练环境提醒**：训练脚本（train_reranker.py / evaluate_reranker.py）依赖
+> torch / sentence-transformers 等大依赖，**仅需在 PM agent 的 GPU 环境安装**（`pip install -r requirements.txt`）。
+> 本仓库提交时已通过 Python 语法检查（py_compile）与 prepare_data.py 数据管线实跑验证，
+> **但训练/评测本身未在无 GPU 的开发机实跑**——若遇 sentence-transformers 版本 API 差异
+> （如 fit 签名、loss 命名），以本节的 loss/参数语义为准调整，并在训练报告中记录改动。
 ```
 
 ### 1.5 交付物
@@ -145,7 +152,7 @@ max_seq_len: 512（四节拼接）
 ## 3. P2：Extract 四节结构化器（可选）
 
 - 基座：`Qwen/Qwen2.5-0.5B-Instruct` 或 `Qwen2.5-1.5B-Instruct`（Apache 2.0），LoRA 微调（LLaMA-Factory 或 transformers+peft）。
-- 数据：合成画像文本 → 四节。**关键**：用 bench 四节画像拼回"自由文本画像"（模板化重写）作输入，四节本身作监督标签（`prepare_data.py --synthesize --task extract`）。
+- 数据：合成画像文本 → 四节。**关键**：用 bench 四节画像拼回"自由文本画像"（模板化重写）作输入，四节本身作监督标签。脚本 `scripts/training/train_extract.py` 内置 `make_free_text` 拼装函数并导出 LLaMA-Factory 数据集格式（`extract_data.jsonl`），无需额外参数。
 - 训练目标：把 extract 变成本地确定性调用，消除 extract 提示词注入面（#52/#46）。
 - 门禁：见 §6.3。
 
@@ -175,7 +182,7 @@ max_seq_len: 512（四节拼接）
 | NDCG@5 | ≥ 0.40 |
 | total_envy | ≤ 2 |
 | 12 陷阱断言 | 全绿（holdout assertions 逐一满足） |
-| 与 v3 LLM 打分一致性 | Spearman ≥ 0.6（在独立 624 对盲标注或本批随机样本上，用 `prepare_data.py --annotate-with-llm` 离线标注比对） |
+| 与 v3 LLM 打分一致性 | Spearman ≥ 0.6（在独立 624 对盲标注或本批随机样本上，用 LLM 离线标注比对；脚本当前提供分数排序对比，标注比对需 PM 另配 LLM 标注步骤） |
 | 注入/堆砌对抗 | 陷阱集内注入画像不得获高分（对齐 #45/#48 预期） |
 
 评测脚本：`scripts/training/evaluate_reranker.py`（输出 JSON 报告 + 逐陷阱明细）。
@@ -218,9 +225,9 @@ max_seq_len: 512（四节拼接）
 ## 9. 训练工作流（PM agent 执行顺序）
 
 1. `cd scripts/training && pip install -r requirements.txt`
-2. `python prepare_data.py --out-dir ./output/data`（生成训练/评测集）
-3. `python evaluate_reranker.py --model BAAI/bge-reranker-v2-m3`（zero-shot 基线）
+2. `python prepare_data.py --out-dir ./output/data`（生成训练/评测集；可加 `--synthesize --synthetic-pairs 5000` 扩展规模）
+3. `python evaluate_reranker.py --model BAAI/bge-reranker-v2-m3 --data ./output/data --out ./output/data/baseline.json`（zero-shot 基线）
 4. `python train_reranker.py --base-model BAAI/bge-reranker-v2-m3 --data ./output/data --out-dir ./output/model`
-5. `python evaluate_reranker.py --model ./output/model --compare ./output/data/baseline.json`（训练后对比）
+5. `python evaluate_reranker.py --model ./output/model --data ./output/data --out ./output/data/trained.json`（训练后对比，与基线对照）
 6. 若门禁全绿 → 导出 ONNX / 起 serve → 按 `docs/training/MODEL_SERVING.md` 接入 Go 引擎
 7. 输出训练报告（含超参、指标、对比），附 PR

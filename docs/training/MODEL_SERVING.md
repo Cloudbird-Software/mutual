@@ -60,9 +60,9 @@ func (c *RerankerScoreClient) CompleteScore(prompt, model string) (string, error
 - **关键**：返回的 JSON 必须与 `bamlllm` 解析器期望的 `DirectionalPairScore` 结构逐字一致（`a_to_b`/`b_to_a`/`reasoning`），否则 `parseScoreResponse` 解析失败。reasoning 可由模型生成或填空字符串（引擎不强制内容）。
 - 注入方式：`config models.pair_llm` 设 `"reranker-local"`，`pipeline.Deps.LLM` 在启动时按此选择实现（在 `cmd/mutual/main.go` 装配）。
 
-### 1.3 ONNX 替代（无 HTTP 时）
+### 1.3 ONNX 替代（无 HTTP 时，待实现）
 
-- `scripts/training/export_onnx.py`（基于 optimum / transformers ONNX 导出）。
+- ⚠️ `scripts/training/export_onnx.py` **当前未提供**（本仓库仅提供 HTTP 推理 `serve_reranker.py`）。需要 ONNX 时由 PM agent 用 `optimum` / `transformers` 的 ONNX 导出器补建（参考各基座仓库的 ONNX 导出文档）。
 - Go 侧用 `github.com/yalue/onnxruntime_go` 加载，直接推理——减少一个服务进程，但增加构建依赖与部署复杂度；**默认推荐 HTTP 服务**（隔离、易灰度、易替换）。
 
 ---
@@ -75,7 +75,7 @@ func (c *RerankerScoreClient) CompleteScore(prompt, model string) (string, error
     embedding: "BAAI/bge-m3"     # 替换 voyage-3-lite
     embedding_dimensions: 1024   # bge-m3 维度
   ```
-- 引擎的 embedding 调用在 `internal/engine/embed.go`（`Embedder` 接口）。若直接换 API 不可行（引擎当前走 OpenAI 兼容 embedding API），需在 `internal/embedding/` 新增一个本地推理 client（参考 `RerankerScoreClient` 模式，HTTP 调用 `serve_embedding.py` 或 ONNX）。
+- 引擎的 embedding 调用在 `internal/engine/embed.go`（`Embedder` 接口）。若直接换 API 不可行（引擎当前走 OpenAI 兼容 embedding API），需在 `internal/embedding/` 新增一个本地推理 client（参考 `RerankerScoreClient` 模式，HTTP 调用一个本地 embedding 服务或 ONNX；本地 embedding 服务脚本本仓库未提供，需按上述模式补建）。
 - ⚠️ **ADR 评审**：embedding 变化改变所有向量的数值分布 → golden 对拍逐位变化。必须：
   1. 更新 `golden/evaluation_report.json` 与相关对拍期望（走 ADR 流程，不允许 hack 测试）；
   2. 在 CHANGELOG.md 记录对外行为变更。
