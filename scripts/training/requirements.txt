@@ -1,0 +1,20 @@
+# mutual 训练环境依赖（Python ≥ 3.10）
+# 安装：pip install -r scripts/training/requirements.txt
+# 治理硬规则：禁止 AGPL/GPL-3.0/SSPL 依赖（以下均 Apache 2.0 / MIT / BSD）
+
+# 训练与推理框架（P0 Score 打分器）
+sentence-transformers>=3.0.0
+torch>=2.1.0
+transformers>=4.40.0
+numpy>=1.24
+
+# 本地推理服务（serve_reranker.py）
+flask>=3.0.0
+
+# P2 Extract 微调（可选，由 PM 在显卡环境装）
+# llamafactory>=0.8.0     # 需 GPU 环境，单独安装
+# peft>=0.10.0
+# datasets>=2.18.0
+
+# 评测
+scikit-learn>=1.3.0
